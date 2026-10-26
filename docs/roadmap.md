@@ -8,7 +8,9 @@
 - [x] Túnel WireGuard dedicado até o MikroTik
 - [x] Painel do proxy acessível só pela VPN
 - [x] NetBox e GLPI restaurados e endurecidos
-- [ ] Zabbix em SSD dedicado (PostgreSQL, retenção curta, descarte de valores repetidos)
+- [x] Zabbix 7.0 LTS (PostgreSQL, retenção curta, descarte de valores repetidos)
+- [x] Firewall do Proxmox em todos os containers
+- [ ] Migrar discos de Zabbix, NetBox e GLPI para SSD dedicado
 - [ ] Sincronização NetBox → Zabbix (hosts a partir do inventário)
 - [ ] Zabbix → GLPI (abertura e fechamento automático de chamados)
 - [ ] Agente de IA (OpenClaw) em VM isolada, com tokens somente leitura

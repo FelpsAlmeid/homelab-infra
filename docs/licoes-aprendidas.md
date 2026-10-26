@@ -21,3 +21,8 @@ Problemas reais encontrados na montagem e como foram resolvidos.
 | GLPI em Docker | Acessível só em `127.0.0.1` | Regras `DOCKER-USER` do proxy antigo | Liberar as redes de administração |
 | NetBox em Docker | `netbox-housekeeping` reiniciando (127) | Serviço legado removido nas versões novas | Desativar via `profiles: ["disabled"]` |
 | Zabbix | Host travando | Escrita contínua do banco no SSD do sistema | Banco em disco dedicado |
+| `pct create` | `volume 'local:vztmpl/...' does not exist` | Template salvo em outro storage | `pveam list <storage>` e usar o volid correto |
+| `pct create` | Disco criado mesmo com erro | O disco é formatado antes de validar o template | Apagar o disco órfão antes de tentar de novo |
+| Zabbix 8.0 | Instalaria uma *release candidate* | Pacote do repositório ativa o canal unstable | Usar o 7.0 LTS |
+| Zabbix 7.0 | Schema não importado | Caminho mudou para `/usr/share/zabbix-sql-scripts/` | Caminho correto |
+| Containers restaurados | Acesso aberto para toda a rede | Firewall do Proxmox não estava habilitado nos CTs | `/etc/pve/firewall/<ID>.fw` com política DROP |

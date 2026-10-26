@@ -60,7 +60,8 @@ Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · Open WebUI · NetBox · 
 | Ollama + Open WebUI | ✅ |
 | Proxy na Oracle + túnel WireGuard + HTTPS | ✅ |
 | NetBox e GLPI restaurados | ✅ |
-| Zabbix + integração NetBox → Zabbix → GLPI | 🔄 |
+| Zabbix 7.0 LTS | ✅ |
+| Integração NetBox → Zabbix → GLPI | 🔄 |
 | Agente de IA (OpenClaw) em VM isolada | ⏳ |
 
 Roadmap completo em [docs/roadmap.md](docs/roadmap.md).
