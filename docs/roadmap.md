@@ -11,7 +11,8 @@
 - [x] Zabbix 7.0 LTS (PostgreSQL, retenção curta, descarte de valores repetidos)
 - [x] Firewall do Proxmox em todos os containers
 - [ ] Migrar discos de Zabbix, NetBox e GLPI para SSD dedicado
-- [ ] Sincronização NetBox → Zabbix (hosts a partir do inventário)
+- [x] Sincronização NetBox → Zabbix (hosts a partir do inventário, por tag)
+- [ ] Reduzir permissões das contas de integração
 - [ ] Zabbix → GLPI (abertura e fechamento automático de chamados)
 - [ ] Agente de IA (OpenClaw) em VM isolada, com tokens somente leitura
 - [ ] Coleta automática das configurações para este repositório

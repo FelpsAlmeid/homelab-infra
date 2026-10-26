@@ -1,0 +1,15 @@
+# /etc/systemd/system/netbox-zabbix-sync.service (referência)
+[Unit]
+Description=Sincronizacao NetBox -> Zabbix
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/netbox-zabbix-sync/sync.env
+ExecStart=/opt/netbox-zabbix-sync/bin/netbox-zabbix-sync -c /etc/netbox-zabbix-sync/config.py
+DynamicUser=yes
+ProtectSystem=strict
+ProtectHome=yes
+NoNewPrivileges=yes
+PrivateTmp=yes

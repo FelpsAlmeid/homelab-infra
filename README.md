@@ -34,7 +34,7 @@ Detalhes em [docs/arquitetura.md](docs/arquitetura.md).
 | [`proxmox/host`](proxmox/host) | Rede com VLANs, IPv6 desativado, driver NVIDIA com Secure Boot |
 | [`proxmox/lxc`](proxmox/lxc) | Configurações de referência dos containers |
 | [`proxmox/firewall`](proxmox/firewall) | IPSets e regras do firewall do Proxmox |
-| [`servicos/`](servicos) | Ollama, Open WebUI, Samba, NetBox, GLPI e Zabbix |
+| [`servicos/`](servicos) | Ollama, Open WebUI, Samba, NetBox, GLPI, Zabbix e a sincronização NetBox → Zabbix |
 | [`oracle/`](oracle) | Proxy público: Nginx Proxy Manager, WireGuard, firewall da instância |
 | [`mikrotik/`](mikrotik) | Ponta local do túnel e regras de firewall |
 | [`docs/`](docs) | Arquitetura, segurança, lições aprendidas e roadmap |
@@ -61,7 +61,8 @@ Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · Open WebUI · NetBox · 
 | Proxy na Oracle + túnel WireGuard + HTTPS | ✅ |
 | NetBox e GLPI restaurados | ✅ |
 | Zabbix 7.0 LTS | ✅ |
-| Integração NetBox → Zabbix → GLPI | 🔄 |
+| Sincronização NetBox → Zabbix | ✅ |
+| Integração Zabbix → GLPI | 🔄 |
 | Agente de IA (OpenClaw) em VM isolada | ⏳ |
 
 Roadmap completo em [docs/roadmap.md](docs/roadmap.md).

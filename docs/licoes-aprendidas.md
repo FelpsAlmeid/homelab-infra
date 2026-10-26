@@ -26,3 +26,8 @@ Problemas reais encontrados na montagem e como foram resolvidos.
 | Zabbix 8.0 | Instalaria uma *release candidate* | Pacote do repositório ativa o canal unstable | Usar o 7.0 LTS |
 | Zabbix 7.0 | Schema não importado | Caminho mudou para `/usr/share/zabbix-sql-scripts/` | Caminho correto |
 | Containers restaurados | Acesso aberto para toda a rede | Firewall do Proxmox não estava habilitado nos CTs | `/etc/pve/firewall/<ID>.fw` com política DROP |
+| NetBox 4.5+ (token v2) | `403 Source IP ::ffff:x.x.x.x is not permitted` | IPs permitidos só em IPv4; o NetBox vê o cliente como IPv4 mapeado em IPv6 | Acrescentar `::ffff:<ip>/128` |
+| netbox-zabbix-sync | Sincronização pularia todos os hosts | Usuário do Zabbix sem visão de templates/grupos | Role com permissão suficiente (Super admin no início) |
+| netbox-zabbix-sync | Host com community diferente perde o ajuste | A ferramenta sobrescreve a interface a cada execução | Community por macro no host |
+| SNMP Huawei | Timeout com ping ok | Community diferente da macro | Ajustar a community |
+

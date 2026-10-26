@@ -1,0 +1,11 @@
+# /etc/systemd/system/netbox-zabbix-sync.timer
+[Unit]
+Description=Roda a sincronizacao NetBox -> Zabbix a cada 15 minutos
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
