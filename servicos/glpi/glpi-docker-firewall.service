@@ -1,0 +1,13 @@
+# /etc/systemd/system/glpi-docker-firewall.service
+[Unit]
+Description=Firewall do GLPI (DOCKER-USER) para gerencia e VPN
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/glpi/firewall-docker-glpi.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

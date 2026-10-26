@@ -1,0 +1,14 @@
+# /etc/pve/firewall/cluster.fw (trechos relevantes)
+[OPTIONS]
+enable: 1
+
+[IPSET redes-admin] # Gerência + VPN de administração
+10.0.0.0/24 # gerencia
+10.0.212.0/24 # vpn wireguard
+
+[IPSET proxy-oracle] # IP do túnel do proxy público
+10.0.213.1
+
+[RULES]
+IN SSH(ACCEPT) -source +redes-admin -log nolog # SSH do host
+IN ACCEPT -source +redes-admin -p tcp -dport 8006 -log nolog # GUI do Proxmox

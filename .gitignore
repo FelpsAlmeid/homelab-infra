@@ -1,0 +1,30 @@
+# Segredos — nunca versionar
+.env
+*.env
+!*.env.example
+*.key
+*.pem
+*.p12
+private.key
+wg0.conf
+*.rsc
+!*.rsc.example
+authorized_keys
+id_*
+!*.example
+
+# Dados e backups
+*.sql
+*.sql.gz
+*.tar.zst
+*.vma.zst
+dump/
+backups/
+data/
+letsencrypt/
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.bak*

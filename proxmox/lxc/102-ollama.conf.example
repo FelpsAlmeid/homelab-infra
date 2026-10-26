@@ -1,0 +1,12 @@
+# /etc/pve/lxc/102.conf (trechos relevantes)
+hostname: ollama
+unprivileged: 1
+features: nesting=1
+cores: 8
+memory: 8192
+net0: name=eth0,bridge=vmbr0,firewall=1,ip=10.0.10.4/24,gw=10.0.10.1,tag=1010,type=veth
+# GPU: só os dispositivos, sem privilégios extras
+dev0: /dev/nvidia0,mode=0666
+dev1: /dev/nvidiactl,mode=0666
+dev2: /dev/nvidia-uvm,mode=0666
+dev3: /dev/nvidia-uvm-tools,mode=0666

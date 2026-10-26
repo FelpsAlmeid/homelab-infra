@@ -1,0 +1,15 @@
+# /etc/systemd/system/open-webui.service
+# Instalado com uv (Python 3.11 isolado), sem Docker.
+[Unit]
+Description=Open WebUI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Environment="DATA_DIR=/opt/open-webui"
+Environment="OLLAMA_BASE_URL=http://10.0.10.4:11434"
+ExecStart=/root/.local/bin/uvx --python 3.11 open-webui@latest serve
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

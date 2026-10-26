@@ -1,0 +1,12 @@
+# /etc/pve/firewall/<ID>.fw — padrão usado nos containers
+[OPTIONS]
+enable: 1
+policy_in: DROP
+log_level_in: info
+
+[RULES]
+IN SSH(ACCEPT) -source +redes-admin -log nolog
+IN Ping(ACCEPT) -source +redes-admin -log nolog
+IN ACCEPT -source +redes-admin -p tcp -dport <PORTA_DO_SERVICO> -log nolog
+# Só nos serviços publicados no proxy:
+# IN ACCEPT -source +proxy-oracle -p tcp -dport <PORTA_DO_SERVICO> -log nolog

@@ -1,0 +1,10 @@
+# Trecho de /etc/samba/smb.conf
+[dados]
+   path = /srv/smb
+   browseable = yes
+   read only = no
+   valid users = <usuario>
+   force user = <usuario>
+   create mask = 0664
+   directory mask = 0775
+   veto files = /lost+found/

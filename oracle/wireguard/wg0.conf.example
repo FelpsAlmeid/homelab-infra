@@ -1,0 +1,11 @@
+# /etc/wireguard/wg0.conf (Oracle) — a Oracle escuta; o MikroTik inicia (keepalive).
+[Interface]
+Address = 10.0.213.1/30
+ListenPort = <PORTA_WG>
+PrivateKey = <CHAVE_PRIVADA_ORACLE>
+
+[Peer]
+# MikroTik
+PublicKey = <CHAVE_PUBLICA_MIKROTIK>
+# Túnel + VLAN dos serviços + notebook de administração (rota de retorno)
+AllowedIPs = 10.0.213.2/32, 10.0.10.0/24, 10.0.212.2/32

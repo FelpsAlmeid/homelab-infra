@@ -1,0 +1,8 @@
+# /etc/pve/lxc/105.conf (trechos relevantes) — restaurado de servidor antigo
+hostname: Netbox
+unprivileged: 1
+features: nesting=1,keyctl=1   # Docker dentro de LXC não privilegiado
+cores: 2
+memory: 2048
+net0: name=eth0,bridge=vmbr0,firewall=1,ip=10.0.10.7/24,gw=10.0.10.1,tag=1010,type=veth
+# Removidas do backup original: lxc.apparmor.profile: unconfined / lxc.cap.drop: / lxc.mount.auto: proc:rw sys:rw

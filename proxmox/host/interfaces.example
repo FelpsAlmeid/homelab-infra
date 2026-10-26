@@ -1,0 +1,21 @@
+# /etc/network/interfaces
+# Uma porta física em trunk; bridge VLAN-aware; IP do host na VLAN de gerência.
+auto lo
+iface lo inet loopback
+
+iface enp2s0 inet manual
+
+auto vmbr0
+iface vmbr0 inet manual
+    bridge-ports enp2s0
+    bridge-stp off
+    bridge-fd 0
+    bridge-vlan-aware yes
+    bridge-vids 1010 1050
+#Trunk: 1010 servicos, 1050 gerencia
+
+auto vmbr0.1050
+iface vmbr0.1050 inet static
+    address 10.0.0.2/28
+    gateway 10.0.0.1
+#Gerencia do host

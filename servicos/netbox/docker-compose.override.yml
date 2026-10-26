@@ -1,0 +1,5 @@
+# O serviço netbox-housekeeping foi removido nas versões novas do netbox-docker
+# (a limpeza roda no netbox-worker). Desativado sem editar o compose original.
+services:
+  netbox-housekeeping:
+    profiles: ["disabled"]

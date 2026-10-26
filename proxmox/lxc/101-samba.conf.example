@@ -1,0 +1,9 @@
+# /etc/pve/lxc/101.conf (trechos relevantes)
+hostname: SMB-Server
+unprivileged: 1
+features: nesting=1
+cores: 1
+memory: 1024
+net0: name=eth0,bridge=vmbr0,firewall=1,ip=10.0.10.3/24,gw=10.0.10.1,tag=1010,type=veth
+# Partição do HD montada no host e entregue ao CT (dono 101000:101000 no host = 1000 no CT)
+mp0: /mnt/smb-dados,mp=/srv/smb,backup=0

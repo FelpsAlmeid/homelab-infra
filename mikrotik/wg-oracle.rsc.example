@@ -1,0 +1,18 @@
+# RouterOS 7 — ponta local do túnel do proxy
+/interface wireguard add name=wg-oracle listen-port=<PORTA_LOCAL> mtu=1420 comment="Tunel proxy Oracle"
+/ip address add address=10.0.213.2/30 interface=wg-oracle
+/interface wireguard peers add interface=wg-oracle public-key="<CHAVE_PUBLICA_ORACLE>" \
+    endpoint-address=<IP_PUBLICO_ORACLE> endpoint-port=<PORTA_WG> \
+    allowed-address=10.0.213.1/32 persistent-keepalive=25s comment="Oracle NPM"
+
+/ip firewall filter
+# Retorno de conexões abertas a partir da rede local (ex.: painel do NPM pela VPN)
+add chain=forward in-interface=wg-oracle connection-state=established,related action=accept place-before=0
+# Serviço publicado
+add chain=forward in-interface=wg-oracle dst-address=10.0.10.5 protocol=tcp dst-port=8080 action=accept comment="Proxy -> Open WebUI" place-before=0
+# Notebook (VPN admin) -> painel do NPM
+add chain=forward src-address=10.0.212.2 dst-address=10.0.213.1 protocol=tcp dst-port=81 out-interface=wg-oracle action=accept place-before=0
+# Todo o resto vindo do túnel é bloqueado; sem acesso ao roteador
+add chain=forward in-interface=wg-oracle action=drop comment="Proxy: bloqueia o resto"
+add chain=input in-interface=wg-oracle protocol=icmp action=accept
+add chain=input in-interface=wg-oracle action=drop comment="Proxy: sem acesso ao roteador"
