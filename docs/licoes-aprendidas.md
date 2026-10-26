@@ -30,4 +30,9 @@ Problemas reais encontrados na montagem e como foram resolvidos.
 | netbox-zabbix-sync | Sincronização pularia todos os hosts | Usuário do Zabbix sem visão de templates/grupos | Role com permissão suficiente (Super admin no início) |
 | netbox-zabbix-sync | Host com community diferente perde o ajuste | A ferramenta sobrescreve a interface a cada execução | Community por macro no host |
 | SNMP Huawei | Timeout com ping ok | Community diferente da macro | Ajustar a community |
+| GLPI 11 | "Adicionar cliente da API" não aparece | Clientes de API pertencem à REST **legada**, desativada por padrão | Habilitar a REST API legada |
+| Zabbix → GLPI | Media type oficial deixava sessões abertas | Não chamava `killSession` | Webhook adaptado com `killSession` em `finally` |
+| Zabbix → GLPI | Robô deixaria de receber alertas de grupos novos | Permissão por grupo não cobre grupos criados depois | Papel tipo Super admin sem interface e sem API |
+| Zabbix | Problema iniciado em manutenção nunca abriria chamado | Condição "não suprimido" é avaliada só na criação | Usar só "pausar operações de problemas suprimidos" |
+| Shell | `Permission denied` ao "abrir" arquivo | Digitar o caminho tenta **executar** o arquivo | `nano <arquivo>` ou `code <arquivo>` |
 

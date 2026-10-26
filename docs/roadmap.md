@@ -13,6 +13,7 @@
 - [ ] Migrar discos de Zabbix, NetBox e GLPI para SSD dedicado
 - [x] Sincronização NetBox → Zabbix (hosts a partir do inventário, por tag)
 - [ ] Reduzir permissões das contas de integração
-- [ ] Zabbix → GLPI (abertura e fechamento automático de chamados)
+- [x] Zabbix → GLPI (abertura e solução automática de chamados)
+- [ ] Migrar a integração para a API nova do GLPI (OAuth)
 - [ ] Agente de IA (OpenClaw) em VM isolada, com tokens somente leitura
 - [ ] Coleta automática das configurações para este repositório
