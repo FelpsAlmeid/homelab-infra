@@ -28,11 +28,20 @@ Problemas reais encontrados na montagem e como foram resolvidos.
 | Containers restaurados | Acesso aberto para toda a rede | Firewall do Proxmox não estava habilitado nos CTs | `/etc/pve/firewall/<ID>.fw` com política DROP |
 | NetBox 4.5+ (token v2) | `403 Source IP ::ffff:x.x.x.x is not permitted` | IPs permitidos só em IPv4; o NetBox vê o cliente como IPv4 mapeado em IPv6 | Acrescentar `::ffff:<ip>/128` |
 | netbox-zabbix-sync | Sincronização pularia todos os hosts | Usuário do Zabbix sem visão de templates/grupos | Role com permissão suficiente (Super admin no início) |
-| netbox-zabbix-sync | Host com community diferente perde o ajuste | A ferramenta sobrescreve a interface a cada execução | Community por macro no host |
+| netbox-zabbix-sync | Host com community/porta diferente perde o ajuste | A ferramenta sobrescreve a interface (e, com `usermacro_sync`, as macros) a cada execução | Porta e community no *local config context* do device no NetBox |
+| netbox-zabbix-sync | `Multiple interfaces of the same type ... manual intervention required` | Segunda interface SNMP criada à mão no host | Deixar uma única interface SNMP |
+| netbox-zabbix-sync 4.1.0 | Macro secreta chega ao Zabbix com valor `********` | `sanatize_log_output` mascara o log com cópia **rasa** e altera os dados enviados | Patch com `copy.deepcopy` (reaplicar após atualizar) |
+| netbox-zabbix-sync | `interface_port` do config context ignorado | A porta só é lida junto com `interface_type` | Config context global com a interface SNMP completa |
 | SNMP Huawei | Timeout com ping ok | Community diferente da macro | Ajustar a community |
 | GLPI 11 | "Adicionar cliente da API" não aparece | Clientes de API pertencem à REST **legada**, desativada por padrão | Habilitar a REST API legada |
 | Zabbix → GLPI | Media type oficial deixava sessões abertas | Não chamava `killSession` | Webhook adaptado com `killSession` em `finally` |
 | Zabbix → GLPI | Robô deixaria de receber alertas de grupos novos | Permissão por grupo não cobre grupos criados depois | Papel tipo Super admin sem interface e sem API |
 | Zabbix | Problema iniciado em manutenção nunca abriria chamado | Condição "não suprimido" é avaliada só na criação | Usar só "pausar operações de problemas suprimidos" |
+| Firewall do Proxmox | `no such ipset` no `pve-firewall compile` — e mesmo assim imprime OK | Nome do IPSet na regra diferente do criado (hífen × sublinhado); a regra inválida é **descartada em silêncio** | Usar o nome exato; sempre ler a saída do `compile`, não só o OK |
+| Nginx Proxy Manager | Serviço com Access List abria de qualquer IP | `.conf` gerado com `satisfy all` mas sem `allow`/`deny` (lista não regenerada) | Salvar a lista de novo e reaplicar no host; conferir com `grep allow` no `.conf` |
+| NetBox atrás do proxy | Formulários com listas de seleção vazias | `location /api/ { deny all; }` — a interface usa a API pela sessão | Não bloquear `/api/` no NetBox; proteger por Access List + tokens com IP |
+| Discos no Proxmox | `sdX` diferente depois de instalar outro disco | Nomes do kernel não são fixos | Usar `/dev/disk/by-id/...` em qualquer comando destrutivo |
+| Ordem de boot | Sync falha com `No route to host` após reiniciar | Zabbix sobe antes do NetBox | `--startup order=` (NetBox/GLPI antes do Zabbix) |
+| Zabbix MFA | Sem acesso após apagar o TOTP do app | Segredo continua no banco | `DELETE FROM mfa_totp_secret` do usuário → QR novo no login |
 | Shell | `Permission denied` ao "abrir" arquivo | Digitar o caminho tenta **executar** o arquivo | `nano <arquivo>` ou `code <arquivo>` |
 

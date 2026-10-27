@@ -10,10 +10,12 @@
 - [x] NetBox e GLPI restaurados e endurecidos
 - [x] Zabbix 7.0 LTS (PostgreSQL, retenção curta, descarte de valores repetidos)
 - [x] Firewall do Proxmox em todos os containers
-- [ ] Migrar discos de Zabbix, NetBox e GLPI para SSD dedicado
+- [x] Migrar discos de Zabbix, NetBox e GLPI para SSD dedicado
 - [x] Sincronização NetBox → Zabbix (hosts a partir do inventário, por tag)
 - [ ] Reduzir permissões das contas de integração
 - [x] Zabbix → GLPI (abertura e solução automática de chamados)
+- [x] Zabbix, NetBox e GLPI publicados no proxy (Access List da empresa, APIs bloqueadas, MFA)
+- [x] Porta e community SNMP por equipamento definidas no NetBox (config context)
 - [ ] Migrar a integração para a API nova do GLPI (OAuth)
 - [ ] Agente de IA (OpenClaw) em VM isolada, com tokens somente leitura
 - [ ] Coleta automática das configurações para este repositório

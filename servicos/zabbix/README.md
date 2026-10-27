@@ -6,7 +6,7 @@ Monitoramento SNMP de ~20 equipamentos de rede, com o banco ajustado para **pouc
 |---|---|
 | Container | LXC não privilegiado, Debian 13, 2 vCPU / 4 GB |
 | Versões | Zabbix 7.0 LTS · PostgreSQL 17 · nginx · php8.4-fpm |
-| Disco | Dedicado (temporariamente em HD; migração com `pct move-volume`) |
+| Disco | SSD dedicado `ssd-dados` (LVM-Thin) — [migração](../../proxmox/host/ssd-dados.md) |
 
 ## Por que 7.0 e não 8.0
 Na data da instalação, o repositório do 8.0 para Debian 13 só oferecia uma *release candidate* (e o pacote do repositório ativava o canal *unstable*). Ficou o 7.0 LTS, versão final com suporte longo.
@@ -33,6 +33,20 @@ zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | runuser -u zabbix 
 - Templates oficiais já vêm no banco (inclusive os MikroTik *by SNMP*); modelo fora da lista → `Mikrotik by SNMP`
 - Firewall do Proxmox: SSH, ping e 80 só para `redes-admin` ([modelo](../../proxmox/firewall/ct.fw.example)); a coleta SNMP é de saída
 
-## Próximos passos
-- Hosts sincronizados a partir do NetBox
-- Problemas abrindo/fechando chamados no GLPI
+## Acesso e MFA
+- Publicado no proxy com Access List (só IPs da empresa) e `/api_jsonrpc.php` negado ([NPM](../../oracle/npm/advanced/README.md))
+- MFA TOTP no grupo dos administradores; robôs de integração não são afetados (API/sem frontend)
+- `{$ZABBIX.URL}` com a URL HTTPS pública (link do evento nos chamados)
+
+### Recuperar o acesso se perder o TOTP
+O segredo fica na tabela `mfa_totp_secret`; apagando a linha do usuário, o próximo login mostra um QR novo:
+```sql
+-- su - postgres -c "psql -d zabbix"
+SELECT u.userid, u.username, t.status FROM users u JOIN mfa_totp_secret t ON t.userid = u.userid;
+DELETE FROM mfa_totp_secret WHERE userid = (SELECT userid FROM users WHERE username = '<usuario>');  -- esperar DELETE 1
+```
+Ao recadastrar, guarde a chave em texto (abaixo do QR) no gerenciador de senhas.
+
+## Integrações
+- Hosts sincronizados a partir do NetBox ([netbox-zabbix-sync](../netbox-zabbix-sync/README.md))
+- Problemas abrindo/solucionando chamados no GLPI ([zabbix-glpi](../zabbix-glpi/README.md))

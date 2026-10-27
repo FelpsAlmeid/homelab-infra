@@ -1,0 +1,11 @@
+{
+  "zabbix": {
+    "interface_type": 2,
+    "interface_port": 161,
+    "snmp": {
+      "version": 2,
+      "community": "{$SNMP_COMMUNITY}",
+      "bulk": 1
+    }
+  }
+}

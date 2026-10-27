@@ -1,0 +1,9 @@
+--- netbox_zabbix_sync/modules/tools.py.orig
++++ netbox_zabbix_sync/modules/tools.py
+@@ def sanatize_log_output(data):
+     if not isinstance(data, dict):
+         return data
+-    sanitized_data = data.copy()
++    import copy
++    sanitized_data = copy.deepcopy(data)
+     # Check if there are any sensitive macros defined in the data

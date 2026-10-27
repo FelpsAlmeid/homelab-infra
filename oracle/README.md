@@ -23,7 +23,11 @@
 1. MikroTik: `accept` para destino/porta **acima** do drop da interface do túnel.
 2. Proxmox: regra no CT liberando a porta para `+proxy-oracle`.
 3. DNS: registro A do subdomínio → IP da Oracle.
-4. NPM: Proxy Host + certificado Let's Encrypt (+ Websockets quando a aplicação usa).
-5. A aplicação precisa de login próprio e cadastro público fechado.
+4. NPM: Proxy Host + certificado Let's Encrypt + Force SSL (+ Websockets quando a aplicação usa).
+5. Serviço interno (NOC): **Access List** só com os IPs públicos da empresa + bloqueio das APIs — veja [npm/advanced](npm/advanced/README.md). Confira no `.conf` gerado se `allow`/`deny` estão lá.
+6. A aplicação precisa de login próprio, cadastro público fechado e MFA.
+7. Ajustar a URL pública na aplicação (NetBox: `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS`; GLPI: URL da aplicação; Zabbix: `{$ZABBIX.URL}`) e, no GLPI, liberar o IP do túnel também na `DOCKER-USER`.
+
+Teste do caminho antes do DNS (na Oracle): `curl -sI http://<ip-interno>:<porta>/` → 200.
 
 > Contas Always Free: limites ARM atuais de 2 OCPUs / 12 GB; instâncias ociosas podem ser recuperadas. Conta Pay As You Go + alerta de orçamento evita surpresas.

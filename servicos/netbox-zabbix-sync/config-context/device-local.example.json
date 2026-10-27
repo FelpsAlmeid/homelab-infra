@@ -1,0 +1,12 @@
+{
+  "zabbix": {
+    "interface_port": <PORTA_SNMP>,
+    "usermacros": {
+      "{$SNMP_COMMUNITY}": {
+        "value": "<COMMUNITY_DO_EQUIPAMENTO>",
+        "type": "secret",
+        "description": "Community SNMP"
+      }
+    }
+  }
+}
