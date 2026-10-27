@@ -31,7 +31,7 @@ Problemas reais encontrados na montagem e como foram resolvidos.
 | netbox-zabbix-sync | Host com community/porta diferente perde o ajuste | A ferramenta sobrescreve a interface (e, com `usermacro_sync`, as macros) a cada execução | Porta e community no *local config context* do device no NetBox |
 | netbox-zabbix-sync | `Multiple interfaces of the same type ... manual intervention required` | Segunda interface SNMP criada à mão no host | Deixar uma única interface SNMP |
 | netbox-zabbix-sync 4.1.0 | Macro secreta chega ao Zabbix com valor `********` | `sanatize_log_output` mascara o log com cópia **rasa** e altera os dados enviados | Patch com `copy.deepcopy` (reaplicar após atualizar) |
-| netbox-zabbix-sync | `interface_port` do config context ignorado | A porta só é lida junto com `interface_type` | Config context global com a interface SNMP completa |
+| netbox-zabbix-sync | `interface_port` do config context ignorado; interface volta para 161 | A porta só é lida junto com `interface_type`, e o config context global não estava sendo aplicado ao device | `interface_type: 2` também no local context; conferir *Dados renderizados* |
 | SNMP Huawei | Timeout com ping ok | Community diferente da macro | Ajustar a community |
 | GLPI 11 | "Adicionar cliente da API" não aparece | Clientes de API pertencem à REST **legada**, desativada por padrão | Habilitar a REST API legada |
 | Zabbix → GLPI | Media type oficial deixava sessões abertas | Não chamava `killSession` | Webhook adaptado com `killSession` em `finally` |

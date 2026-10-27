@@ -42,7 +42,9 @@ Nem todos os equipamentos usam a porta 161 nem a mesma community. Editar a inter
 O NetBox mescla as duas camadas (o local prevalece). No Zabbix a interface continua com `{$SNMP_COMMUNITY}`; o valor vem da macro do host (prioridade: host → template → global).
 
 Detalhes da versão 4.1.0 (lidos no código):
-- `interface_port` só é lido se `interface_type` existir no context — por isso o global declara a interface completa.
+- `interface_port` só é lido se `interface_type` existir no context — por isso o global declara a interface completa, e o exemplo local repete `interface_type: 2` (se o global não for aplicado ao device, a porta e o `snmp` locais são **ignorados em silêncio** e a interface volta para 161).
+- Conferir sempre a aba *Contexto de configuração → Dados renderizados* do device: se faltar `"community": "{$SNMP_COMMUNITY}"` dentro de `snmp`, o global não está casando (ativo? só a tag `zabbix` como critério?).
+- `bulk: 0` (sem requisições combinadas) usado no equipamento atrás de NAT/redirecionamento de porta: respostas UDP grandes podem não voltar.
 - Com `interface_type: 2` o bloco `snmp` com `version` é obrigatório.
 - `usermacro_sync`: `True` sincroniza; `"full"` também força o reenvio (a API do Zabbix não devolve o valor de macros secretas, então só o `full` propaga uma troca de community).
 - Com o sync de macros ligado, **macros criadas à mão no host são substituídas** pelas do NetBox. Migre as exceções para o NetBox antes de ligar.

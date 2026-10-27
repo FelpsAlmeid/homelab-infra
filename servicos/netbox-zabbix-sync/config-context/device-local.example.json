@@ -1,6 +1,8 @@
 {
   "zabbix": {
+    "interface_type": 2,
     "interface_port": <PORTA_SNMP>,
+    "snmp": { "version": 2, "bulk": 0 },
     "usermacros": {
       "{$SNMP_COMMUNITY}": {
         "value": "<COMMUNITY_DO_EQUIPAMENTO>",
