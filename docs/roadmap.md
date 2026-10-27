@@ -22,8 +22,8 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [x] Storage `ssd-dados` (LVM-Thin) e migração de Zabbix, NetBox e GLPI ([como](../proxmox/host/ssd-dados.md))
 - [x] Repositório `no-subscription` (enterprise desativado)
 - [ ] `apt full-upgrade` e conferir `nvidia-smi` após kernel novo
-- [ ] Remover os discos antigos (`unused0`) dos CTs 104–106
-- [ ] Confirmar a ordem de boot (NetBox/GLPI antes do Zabbix)
+- [x] Remover os discos antigos (`unused0`) dos CTs 104–106
+- [x] Ordem de boot: NetBox/GLPI `order=1`, Zabbix `order=2,up=60` (validar no próximo reboot)
 - [ ] `intel-microcode` e fuso horário
 - [ ] Desativar serviços de HA em nó único
 - [ ] TFA (TOTP) no usuário administrador
@@ -38,7 +38,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [x] Publicado no proxy (Access List, `/api_jsonrpc.php` bloqueado) com MFA
 - [x] Porta e community SNMP por equipamento vindas do NetBox (config context)
 - [ ] Config context global aplicado a **todos** os devices com a tag `zabbix`
-- [ ] Concluir os equipamentos já sincronizados que ainda estão sem SNMP
+- [x] Equipamentos já sincronizados com SNMP ok (local context em cada um)
 - [ ] Restante do backbone (~20 equipamentos) com a tag `zabbix`
 - [ ] Testar `bulk: 1` no equipamento atrás de NAT (manter `0` se der timeout)
 - [ ] Template para o modelo NetEngine 8000 (se for monitorado)
