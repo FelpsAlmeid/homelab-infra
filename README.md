@@ -69,7 +69,17 @@ Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · Open WebUI · NetBox · 
 | Backbone completo no monitoramento | 🔄 |
 | Agente de IA (OpenClaw) em VM isolada | ⏳ |
 
-Roadmap completo em [docs/roadmap.md](docs/roadmap.md).
+Roadmap por sistema (Proxmox, Zabbix, NetBox, GLPI, integrações, proxy e IA) em [docs/roadmap.md](docs/roadmap.md).
+
+## Telas
+
+| Proxmox | Zabbix |
+|---|---|
+| ![Proxmox](docs/img/proxmox-sumario.png) | ![Zabbix](docs/img/zabbix-global-view.png) |
+| **NetBox** | **GLPI** |
+| ![NetBox](docs/img/netbox-dashboard.png) | ![GLPI](docs/img/glpi-dashboard.png) |
+
+> Capturas com nomes de hosts, IPs e objetos ocultados.
 
 ## Como usar estes arquivos
 

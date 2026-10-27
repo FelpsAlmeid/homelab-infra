@@ -1,29 +1,94 @@
 # Roadmap
 
-- [x] Host Proxmox com VLANs, hardening e IPv6 desativado
-- [x] RTX 3060 com driver assinado (Secure Boot ativo)
-- [x] Samba em LXC com bind mount
-- [x] Ollama na GPU + Open WebUI
-- [x] Proxy público na Oracle Cloud com HTTPS
-- [x] Túnel WireGuard dedicado até o MikroTik
-- [x] Painel do proxy acessível só pela VPN
-- [x] NetBox e GLPI restaurados e endurecidos
-- [x] Zabbix 7.0 LTS (PostgreSQL, retenção curta, descarte de valores repetidos)
-- [x] Firewall do Proxmox em todos os containers
-- [x] Migrar discos de Zabbix, NetBox e GLPI para SSD dedicado
-- [x] Sincronização NetBox → Zabbix (hosts a partir do inventário, por tag)
-- [ ] Reduzir permissões das contas de integração
-- [x] Zabbix → GLPI (abertura e solução automática de chamados)
-- [x] Zabbix, NetBox e GLPI publicados no proxy (Access List da empresa, APIs bloqueadas, MFA)
-- [x] Porta e community SNMP por equipamento definidas no NetBox (config context)
-- [ ] Todo o backbone (~20 equipamentos) sincronizado do NetBox para o Zabbix
-- [ ] Revogar tokens usados na configuração e HTTPS interno no GLPI
-- [ ] Migrar a integração para a API nova do GLPI (OAuth)
-- [ ] Agente de IA (OpenClaw) em VM isolada, com tokens somente leitura
+Separado por sistema. Cada seção tem o que já foi feito e o que falta.
+
+## Projeto principal (homelab + IA para o NOC)
+
+- [x] Base de IA local: Ollama na GPU + Open WebUI
+- [x] Serviços de NOC no laboratório: NetBox (IPAM), GLPI (chamados), Zabbix (monitoramento)
+- [x] Integrações NetBox → Zabbix e Zabbix → GLPI
+- [x] Publicação segura dos serviços (proxy na nuvem, sem portas abertas na rede local)
+- [ ] **Fechar o monitoramento** do backbone (ver [Zabbix](#zabbix))
+- [ ] **Agente de IA (OpenClaw) em VM isolada**, com snapshot antes de cada skill e tokens **somente leitura**
+  - [ ] Primeiro caso de uso N2: resumir problemas ativos do Zabbix e chamados abertos no GLPI
+- [ ] Acesso da equipe do NOC ao Open WebUI (contas sem admin, modelo padrão e *system prompt* em PT-BR, grupos/permissões)
 - [ ] Coleta automática das configurações para este repositório
+
+## Proxmox (host)
+
+- [x] VLANs (gerência e serviços), IPv6 desativado, root sem acesso remoto
+- [x] RTX 3060 com driver assinado (Secure Boot ativo)
+- [x] Firewall do Proxmox em todos os containers (política DROP)
+- [x] Storage `ssd-dados` (LVM-Thin) e migração de Zabbix, NetBox e GLPI ([como](../proxmox/host/ssd-dados.md))
+- [x] Repositório `no-subscription` (enterprise desativado)
+- [ ] `apt full-upgrade` e conferir `nvidia-smi` após kernel novo
+- [ ] Remover os discos antigos (`unused0`) dos CTs 104–106
+- [ ] Confirmar a ordem de boot (NetBox/GLPI antes do Zabbix)
+- [ ] `intel-microcode` e fuso horário
+- [ ] Desativar serviços de HA em nó único
+- [ ] TFA (TOTP) no usuário administrador
+- [ ] Firewall do host: 8006/22 só para `redes-admin`
+- [ ] Job de backup agendado dos containers
+- [ ] Limpeza do HD antigo (backups e ISOs do servidor anterior)
+
+## Zabbix
+
+- [x] Zabbix 7.0 LTS com PostgreSQL ajustado para pouca escrita, em SSD dedicado
+- [x] Communities como macros secretas
+- [x] Publicado no proxy (Access List, `/api_jsonrpc.php` bloqueado) com MFA
+- [x] Porta e community SNMP por equipamento vindas do NetBox (config context)
+- [ ] Config context global aplicado a **todos** os devices com a tag `zabbix`
+- [ ] Concluir os equipamentos já sincronizados que ainda estão sem SNMP
+- [ ] Restante do backbone (~20 equipamentos) com a tag `zabbix`
+- [ ] Testar `bulk: 1` no equipamento atrás de NAT (manter `0` se der timeout)
+- [ ] Template para o modelo NetEngine 8000 (se for monitorado)
+- [ ] Role própria para a conta do sync (sair do Super admin)
 - [ ] Avaliar SNMPv3 nos equipamentos principais
+
+## NetBox
+
+- [x] Restaurado do servidor antigo, convertido para não privilegiado
+- [x] Custom fields e tag para a integração; token v2 restrito por IP
+- [x] Config context global + local context por equipamento
+- [x] Publicado no proxy (Access List) com tokens só da rede interna
+- [ ] Permissões por objeto para a conta `zabbix-sync` (sair do superuser)
+- [ ] Cadastrar o serial dos devices (alimenta `{$HW_SERIAL}` no Zabbix)
+
+## GLPI
+
+- [x] Restaurado do servidor antigo, firewall `DOCKER-USER` e cron em modo CLI
+- [x] Publicado no proxy (Access List, APIs bloqueadas) com 2FA
+- [ ] HTTPS interno (tokens ainda em HTTP dentro da VLAN)
+- [ ] Avaliar `cron_limit` 5 → 10
+- [ ] Trocar as senhas do MariaDB
+
+## Integrações
+
+**NetBox → Zabbix** ([netbox-zabbix-sync](../servicos/netbox-zabbix-sync/README.md))
+- [x] Hosts criados a partir do inventário (tag, grupo `site/role`, template do tipo)
+- [x] `usermacro_sync = "full"` e patch do bug da macro secreta
+- [ ] Reaplicar o patch a cada atualização — ou atualizar quando corrigido no projeto (abrir issue)
+
+**Zabbix → GLPI** ([zabbix-glpi](../servicos/zabbix-glpi/README.md))
+- [x] Abertura, acompanhamento e solução automática de chamados (validado de novo após a migração e o proxy)
+- [ ] Revogar o token de API usado na configuração e limpar o arquivo de segredos temporário
+- [ ] Migrar para a API nova do GLPI (OAuth) antes da remoção da legada
+
+## Proxy (Oracle Cloud + NPM)
+
+- [x] Instância ARM, IP reservado, firewall em duas camadas
+- [x] Túnel WireGuard dedicado até o MikroTik; painel do NPM só pela VPN
+- [x] Open WebUI público com HTTPS; Zabbix, NetBox e GLPI só para os IPs da empresa
+- [ ] SSH pela VPN e remover a regra pública da porta 22
+
+## IA (Ollama + Open WebUI)
+
+- [x] Ollama em LXC não privilegiado com a GPU
+- [x] Open WebUI publicado com HTTPS
+- [ ] Modelo padrão e *system prompt* para o NOC
+- [ ] Contas da equipe e grupos de permissão
 
 ## Próximo passo
 
-1. **Fechar o monitoramento:** config context global aplicado a todos, exceções de porta/community no NetBox, restante do backbone com a tag `zabbix`.
-2. **Agente OpenClaw** em VM isolada, com tokens somente leitura, começando por resumir problemas do Zabbix e chamados do GLPI.
+1. **Fechar o monitoramento** (seções Zabbix e Proxmox).
+2. **Agente OpenClaw** em VM isolada, com tokens somente leitura.
