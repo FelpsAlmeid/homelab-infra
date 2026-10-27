@@ -65,6 +65,7 @@ Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · Open WebUI · NetBox · 
 | Integração Zabbix → GLPI | ✅ |
 | Bancos em SSD dedicado | ✅ |
 | NOC publicado no proxy (só IPs da empresa + MFA) | ✅ |
+| SNMP por equipamento via NetBox (porta/community) | 🔄 |
 | Agente de IA (OpenClaw) em VM isolada | ⏳ |
 
 Roadmap completo em [docs/roadmap.md](docs/roadmap.md).
