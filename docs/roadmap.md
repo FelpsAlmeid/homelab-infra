@@ -15,7 +15,7 @@
 - [ ] Reduzir permissões das contas de integração
 - [x] Zabbix → GLPI (abertura e solução automática de chamados)
 - [x] Zabbix, NetBox e GLPI publicados no proxy (Access List da empresa, APIs bloqueadas, MFA)
-- [ ] Porta e community SNMP por equipamento definidas no NetBox (config context) — em andamento
+- [x] Porta e community SNMP por equipamento definidas no NetBox (config context)
 - [ ] Todo o backbone (~20 equipamentos) sincronizado do NetBox para o Zabbix
 - [ ] Revogar tokens usados na configuração e HTTPS interno no GLPI
 - [ ] Migrar a integração para a API nova do GLPI (OAuth)
