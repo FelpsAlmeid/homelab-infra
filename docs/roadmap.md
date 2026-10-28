@@ -25,9 +25,9 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [x] Remover os discos antigos (`unused0`) dos CTs 104–106
 - [x] Ordem de boot: NetBox/GLPI `order=1`, Zabbix `order=2,up=60` (validar no próximo reboot)
 - [ ] `intel-microcode` e fuso horário
-- [ ] Desativar serviços de HA em nó único
+- [x] Serviços de HA desativados (nó único)
 - [ ] TFA (TOTP) no usuário administrador
-- [ ] Firewall do host: 8006/22 só para `redes-admin`
+- [x] Firewall do host: 8006/22 só para `redes-admin` (rede local automática do Proxmox contida na gerência)
 - [x] Jobs de backup: diário (5 CTs) e semanal (Ollama) no HD, com retenção e repetir perdidos
 - [x] Cópia semanal criptografada para o Google Drive (conta dedicada, `drive.file` + `crypt`)
 - [ ] Instalar a versão nova do `backup-offsite.sh` (envio único) e validar uma execução completa
