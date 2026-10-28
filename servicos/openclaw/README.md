@@ -105,5 +105,50 @@ Validação: container com `NetworkMode=none`, raiz somente leitura e usuário s
 
 > **O modelo descreve ferramentas que não tem.** Pedido de `cat /etc/machine-id`: a resposta inventou capacidades, mas o log mostrou `Unknown tool id: shell_execute` e nada foi executado. Valide sempre pela configuração e pelo log, nunca pela resposta do modelo.
 
+## Integração com o Zabbix (somente leitura)
+
+Três camadas independentes:
+
+| Camada | Controle |
+|---|---|
+| Zabbix | Usuário sem frontend; função com API em **lista de permissões**: `host.get` `hostgroup.get` `hostinterface.get` `problem.get` `event.get` `trigger.get` `item.get` `history.get` `trend.get` `maintenance.get` `template.get` |
+| MCP | [`zabbix-mcp`](https://github.com/mhajder/zabbix-mcp) com versão fixa, `READ_ONLY_MODE=true`, rate limit |
+| OpenClaw | Só 8 ferramentas expostas e só `zabbix__*` liberado no sandbox |
+
+```bash
+# token fora do openclaw.json: .env privado + script de inicialização
+mkdir -p ~/.config/zabbix-mcp && chmod 700 ~/.config/zabbix-mcp
+read -rsp "Token Zabbix: " T; echo          # sozinho; colar o valor no prompt
+cat > ~/.config/zabbix-mcp/.env <<EOF
+ZABBIX_URL=http://<ip-zabbix>/api_jsonrpc.php
+ZABBIX_TOKEN=$T
+READ_ONLY_MODE=true
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_MAX_REQUESTS=60
+EOF
+unset T; chmod 600 ~/.config/zabbix-mcp/.env
+
+cat > ~/.config/zabbix-mcp/run.sh <<'EOF'
+#!/bin/sh
+set -a; . /home/openclaw/.config/zabbix-mcp/.env; set +a
+exec /home/openclaw/.local/bin/uvx zabbix-mcp@0.7.1
+EOF
+chmod 700 ~/.config/zabbix-mcp/run.sh      # o servidor não lê o .env do diretório de trabalho
+
+openclaw mcp add zabbix --command /home/openclaw/.config/zabbix-mcp/run.sh --timeout 60
+openclaw mcp tools zabbix --include problem_get,event_get,host_get,hostgroup_get,trigger_get,item_get,history_get,maintenance_get
+```
+
+```json5
+tools: {
+  alsoAllow: ["zabbix__*"],
+  sandbox: { tools: { alsoAllow: ["zabbix__*"] } },   // sem isso o sandbox esconde as ferramentas do MCP
+  toolSearch: false,   // modelos locais do Ollama usam busca de ferramentas por padrão; o gemma4:12b erra a chamada
+}
+```
+
+Teste: *"Quais problemas estão ativos no Zabbix agora?"* → problemas reais retornados pelo `problem_get`.
+
 ## Próximos passos
-- Integração com o Zabbix por MCP em modo somente leitura; depois NetBox e GLPI
+- Instruções do agente para o papel de N2
+- NetBox e GLPI somente leitura

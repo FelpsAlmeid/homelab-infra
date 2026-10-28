@@ -43,5 +43,11 @@ Problemas reais encontrados na montagem e como foram resolvidos.
 | Discos no Proxmox | `sdX` diferente depois de instalar outro disco | Nomes do kernel não são fixos | Usar `/dev/disk/by-id/...` em qualquer comando destrutivo |
 | Ordem de boot | Sync falha com `No route to host` após reiniciar | Zabbix sobe antes do NetBox | `--startup order=` (NetBox/GLPI antes do Zabbix) |
 | Zabbix MFA | Sem acesso após apagar o TOTP do app | Segredo continua no banco | `DELETE FROM mfa_totp_secret` do usuário → QR novo no login |
+| Zabbix | Todos os equipamentos "Unavailable by ICMP ping" de uma vez | NAT do IP público do servidor removido; equipamentos só respondem a esse IP | Manter NAT para o Zabbix (dependência documentada) |
+| Zabbix API | Função "somente leitura" liberava tudo menos leitura | Métodos na **Lista de negação** em vez da **Lista de permissões** | Lista de permissões; testar com `user.get` (deve negar) |
+| Shell | `read -rsp "<token>" T` → "Not authorized" | O texto do `-p` é só o prompt; o `read` engoliu a linha seguinte colada | Rodar o `read` sozinho e colar o valor no prompt |
+| zabbix-mcp | `Missing required Zabbix URL` com `.env` na pasta | O `.env` não é lido do diretório de trabalho | Script que carrega o `.env` e faz `exec` do servidor |
+| OpenClaw + modelo local | Agente diz que "não tem ferramenta"; log `Unknown tool id: tool_search` | Busca de ferramentas automática para Ollama; modelo pequeno erra a chamada | `tools.toolSearch: false` e poucas ferramentas expostas |
+| OpenClaw | Modelo descreve ferramentas de shell que não tem | Alucinação sobre as próprias capacidades | Validar por config e log, nunca pela resposta |
 | Shell | `Permission denied` ao "abrir" arquivo | Digitar o caminho tenta **executar** o arquivo | `nano <arquivo>` ou `code <arquivo>` |
 

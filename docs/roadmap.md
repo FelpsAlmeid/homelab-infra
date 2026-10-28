@@ -13,7 +13,9 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
   - [x] VM com firewall de saída fechado, usuário sem sudo, Docker rootless, gateway em loopback, token como SecretRef
   - [x] Modelo local (gemma4:12b, 32K) respondendo pela API nativa do Ollama
   - [x] Sandbox `all` (sem rede, raiz somente leitura, sem root), ferramentas de shell/arquivos/web negadas, `security audit` sem críticos
-  - [ ] Zabbix somente leitura: papel com lista de métodos `*.get` específicos, MCP em modo leitura, firewall só VM → Zabbix
+  - [x] Zabbix somente leitura: função com lista de permissões (11 métodos `.get`), MCP `zabbix-mcp` em modo leitura com 8 ferramentas expostas, firewall só VM → Zabbix
+  - [ ] Instruções do agente para o papel de N2 (PT-BR, nome do host via `event_get`, nunca sugerir alterações)
+  - [ ] NetBox e GLPI somente leitura
   - [ ] Primeiro caso de uso N2: resumir problemas ativos do Zabbix e chamados abertos no GLPI
 - [ ] Acesso da equipe do NOC ao Open WebUI (contas sem admin, modelo padrão e *system prompt* em PT-BR, grupos/permissões)
 - [ ] Coleta automática das configurações para este repositório
@@ -37,6 +39,13 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [ ] Instalar a versão nova do `backup-offsite.sh` (envio único) e validar uma execução completa
 - [ ] Teste de restauração a partir do Drive
 - [x] Limpeza do HD antigo (backups e ISOs do servidor anterior)
+
+## Rede dos containers (saída para a internet)
+
+- Decisão: **só o Zabbix tem saída permanente** (ICMP/SNMP do backbone pelo NAT do IP público — os equipamentos só aceitam esse IP); os demais saem **apenas para atualizar** (apt, imagens Docker, modelos, npm/uv)
+- [ ] Aplicar o padrão nos CTs 101–106 (`policy_out: DROP` + DNS/NTP/HTTP/HTTPS só quando atualizar; regras internas já existentes)
+- [ ] Zabbix: saída própria para ICMP e SNMP (UDP 161 + portas específicas por equipamento)
+- [ ] DNS dos CTs no MikroTik (gateway da VLAN) em vez de resolvedor externo
 
 ## Zabbix
 
