@@ -31,7 +31,7 @@ Detalhes em [docs/arquitetura.md](docs/arquitetura.md).
 
 | Pasta | Conteúdo |
 |---|---|
-| [`proxmox/host`](proxmox/host) | Rede com VLANs, IPv6 desativado, driver NVIDIA com Secure Boot |
+| [`proxmox/host`](proxmox/host) | Rede com VLANs, IPv6 desativado, driver NVIDIA com Secure Boot, SSD de dados e [backup](proxmox/host/backup) |
 | [`proxmox/lxc`](proxmox/lxc) | Configurações de referência dos containers |
 | [`proxmox/firewall`](proxmox/firewall) | IPSets e regras do firewall do Proxmox |
 | [`servicos/`](servicos) | Ollama, Open WebUI, Samba, NetBox, GLPI, Zabbix a sincronização NetBox → Zabbix e a integração Zabbix → GLPI |

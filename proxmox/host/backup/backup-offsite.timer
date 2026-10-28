@@ -1,0 +1,11 @@
+[Unit]
+Description=Agenda da cópia semanal dos backups para o Google Drive
+
+[Timer]
+OnCalendar=Sun *-*-* 05:00:00
+# Se o PC estiver desligado/no Windows no horário, roda assim que o Proxmox subir
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target
