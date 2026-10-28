@@ -1,0 +1,19 @@
+# /etc/pve/firewall/<VMID>.fw — VM do agente: entrada e saída fechadas por padrão
+[OPTIONS]
+enable: 1
+policy_in: DROP
+policy_out: DROP
+log_level_in: info
+log_level_out: info
+
+[RULES]
+IN SSH(ACCEPT) -source +redes-admin -log nolog
+IN Ping(ACCEPT) -source +redes-admin -log nolog
+OUT DNS(ACCEPT) -log nolog
+OUT NTP(ACCEPT) -log nolog
+OUT HTTPS(ACCEPT) -log nolog       # pacotes, npm, imagens do sandbox
+OUT HTTP(ACCEPT) -log nolog
+OUT Ping(ACCEPT) -log nolog
+OUT ACCEPT -dest <IP_OLLAMA> -p tcp -dport 11434 -log nolog
+# Integrações (uma regra por destino, quando forem criadas):
+# OUT ACCEPT -dest <IP_ZABBIX> -p tcp -dport 80 -log nolog

@@ -9,7 +9,10 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [x] Integrações NetBox → Zabbix e Zabbix → GLPI
 - [x] Publicação segura dos serviços (proxy na nuvem, sem portas abertas na rede local)
 - [ ] **Fechar o monitoramento** do backbone (ver [Zabbix](#zabbix))
-- [ ] **Agente de IA (OpenClaw) em VM isolada**, com snapshot antes de cada skill e tokens **somente leitura**
+- [ ] **Agente de IA (OpenClaw) em VM isolada**, com snapshot antes de cada skill e tokens **somente leitura** ([guia](../servicos/openclaw/README.md))
+  - [x] VM com firewall de saída fechado, usuário sem sudo, Docker rootless, gateway em loopback, token como SecretRef
+  - [x] Modelo local (gemma4:12b, 32K) respondendo pela API nativa do Ollama
+  - [ ] Sandbox `all` + execução em `deny`/`allowlist` e `security audit --deep`
   - [ ] Primeiro caso de uso N2: resumir problemas ativos do Zabbix e chamados abertos no GLPI
 - [ ] Acesso da equipe do NOC ao Open WebUI (contas sem admin, modelo padrão e *system prompt* em PT-BR, grupos/permissões)
 - [ ] Coleta automática das configurações para este repositório

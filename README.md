@@ -22,6 +22,7 @@ flowchart LR
       G["CT 106 · GLPI"]
       Z["CT 104 · Zabbix"]
       S["CT 101 · Samba"]
+      A["VM 107 · OpenClaw (agente)"] -->|"API nativa"| L
       HD[("HD de backup<br/>vzdump diário + semanal")]
       S & L & W & Z & NB & G -.-> HD
     end
@@ -71,7 +72,7 @@ Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · Open WebUI · NetBox · 
 | NOC publicado no proxy (só IPs da empresa + MFA) | ✅ |
 | SNMP por equipamento via NetBox (porta/community) | ✅ |
 | Backbone completo no monitoramento | 🔄 |
-| Agente de IA (OpenClaw) em VM isolada | ⏳ |
+| Agente de IA (OpenClaw) em VM isolada | 🔄 |
 
 Roadmap por sistema (Proxmox, Zabbix, NetBox, GLPI, integrações, proxy e IA) em [docs/roadmap.md](docs/roadmap.md).
 
