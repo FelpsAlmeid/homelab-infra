@@ -24,7 +24,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - Atualizações: **manuais, sob demanda** (correções de segurança/bugs), com backup antes e `dkms status` antes de reiniciar quando houver kernel novo
 - [x] Remover os discos antigos (`unused0`) dos CTs 104–106
 - [x] Ordem de boot: NetBox/GLPI `order=1`, Zabbix `order=2,up=60` (validar no próximo reboot)
-- [ ] `intel-microcode` e fuso horário
+- [x] `intel-microcode` e fuso horário (America/Fortaleza)
 - [x] Serviços de HA desativados (nó único)
 - [x] TFA (TOTP) e chaves de recuperação no usuário administrador
 - [x] Firewall do host: 8006/22 só para `redes-admin` (rede local automática do Proxmox contida na gerência)
