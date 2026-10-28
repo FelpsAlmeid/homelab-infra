@@ -106,5 +106,6 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 
 ## Próximo passo
 
-1. **Fechar o monitoramento** (seções Zabbix e Proxmox).
-2. **Agente OpenClaw** em VM isolada, com tokens somente leitura.
+1. Instruções do agente para o papel de N2 (respostas em PT-BR, nome do host, todas as severidades, só diagnóstico).
+2. NetBox e GLPI somente leitura para o agente.
+3. Fechar o monitoramento do backbone e a política de saída dos containers.

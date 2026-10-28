@@ -149,6 +149,20 @@ tools: {
 
 Teste: *"Quais problemas estão ativos no Zabbix agora?"* → problemas reais retornados pelo `problem_get`.
 
+## Painel web
+
+O gateway escuta só em loopback; o acesso é por túnel SSH a partir da rede de administração:
+
+```bash
+ssh -L 18789:127.0.0.1:18789 <usuario>@<ip-da-vm>   # depois: http://127.0.0.1:18789/
+```
+
+O painel mostra as chamadas de ferramenta de cada resposta — útil para auditar o que o agente consultou. Não publicar no proxy: é a interface de administração do agente.
+
+## Validação
+
+Com o NAT do servidor removido por engano, o agente listou as três quedas reais por ICMP; após a correção, uma nova pergunta consultou o Zabbix de novo e confirmou a normalização.
+
 ## Próximos passos
 - Instruções do agente para o papel de N2
 - NetBox e GLPI somente leitura
