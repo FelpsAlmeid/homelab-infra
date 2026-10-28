@@ -28,8 +28,11 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [ ] Desativar serviços de HA em nó único
 - [ ] TFA (TOTP) no usuário administrador
 - [ ] Firewall do host: 8006/22 só para `redes-admin`
-- [ ] Job de backup agendado dos containers
-- [ ] Limpeza do HD antigo (backups e ISOs do servidor anterior)
+- [x] Jobs de backup: diário (5 CTs) e semanal (Ollama) no HD, com retenção e repetir perdidos
+- [x] Cópia semanal criptografada para o Google Drive (conta dedicada, `drive.file` + `crypt`)
+- [ ] Instalar a versão nova do `backup-offsite.sh` (envio único) e validar uma execução completa
+- [ ] Teste de restauração a partir do Drive
+- [x] Limpeza do HD antigo (backups e ISOs do servidor anterior)
 
 ## Zabbix
 
