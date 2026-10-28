@@ -26,7 +26,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [x] Ordem de boot: NetBox/GLPI `order=1`, Zabbix `order=2,up=60` (validar no próximo reboot)
 - [ ] `intel-microcode` e fuso horário
 - [x] Serviços de HA desativados (nó único)
-- [ ] TFA (TOTP) no usuário administrador
+- [x] TFA (TOTP) e chaves de recuperação no usuário administrador
 - [x] Firewall do host: 8006/22 só para `redes-admin` (rede local automática do Proxmox contida na gerência)
 - [x] Jobs de backup: diário (5 CTs) e semanal (Ollama) no HD, com retenção e repetir perdidos
 - [x] Cópia semanal criptografada para o Google Drive (conta dedicada, `drive.file` + `crypt`)
