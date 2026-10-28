@@ -70,6 +70,40 @@ openclaw secrets configure     # env · alias gateway · allowlist/id OPENCLAW_G
 openclaw secrets audit --check # clean
 ```
 
+## Sandbox e política de ferramentas
+
+Base: `docs/gateway/security/hardened-baseline.md` (sem copiar o bloco `gateway`, para não trazer o token em texto).
+
+```json5
+tools: {
+  deny: ["group:automation","group:runtime","group:fs","group:web","browser","sessions_spawn","sessions_send"],
+  sandbox: { tools: { deny: [/* mesma lista */] } },   // defesa em profundidade
+  fs: { workspaceOnly: true }, exec: { security: "deny", ask: "always" },
+  elevated: { enabled: false }, sessions: { visibility: "agent" }, agentToAgent: { enabled: false },
+},
+agents: { defaults: { sandbox: { mode: "all", scope: "session", workspaceAccess: "none" } } }
+```
+
+```bash
+# o serviço do gateway não lê o .bashrc: apontar para o Docker rootless
+printf '[Service]\nEnvironment=DOCKER_HOST=unix://%%t/docker.sock\n' > ~/.config/systemd/user/openclaw-gateway.service.d/docker.conf
+
+# imagem do sandbox (o pacote npm não traz scripts/sandbox-setup.sh)
+docker build -t openclaw-sandbox:bookworm-slim - <<'DOCKERFILE'
+FROM debian:bookworm-slim
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  bash ca-certificates curl git jq python3 ripgrep && rm -rf /var/lib/apt/lists/*
+RUN useradd --create-home --shell /bin/bash sandbox
+USER sandbox
+WORKDIR /home/sandbox
+CMD ["sleep", "infinity"]
+DOCKERFILE
+```
+
+Validação: container com `NetworkMode=none`, raiz somente leitura e usuário sem root; `openclaw security audit --deep` sem críticos.
+
+> **O modelo descreve ferramentas que não tem.** Pedido de `cat /etc/machine-id`: a resposta inventou capacidades, mas o log mostrou `Unknown tool id: shell_execute` e nada foi executado. Valide sempre pela configuração e pelo log, nunca pela resposta do modelo.
+
 ## Próximos passos
-- Sandbox em todas as sessões e execução em `deny`/`allowlist`
 - Integração com o Zabbix por MCP em modo somente leitura; depois NetBox e GLPI
