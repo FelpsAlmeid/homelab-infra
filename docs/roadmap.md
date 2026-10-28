@@ -21,7 +21,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [x] Firewall do Proxmox em todos os containers (política DROP)
 - [x] Storage `ssd-dados` (LVM-Thin) e migração de Zabbix, NetBox e GLPI ([como](../proxmox/host/ssd-dados.md))
 - [x] Repositório `no-subscription` (enterprise desativado)
-- [ ] `apt full-upgrade` e conferir `nvidia-smi` após kernel novo
+- Atualizações: **manuais, sob demanda** (correções de segurança/bugs), com backup antes e `dkms status` antes de reiniciar quando houver kernel novo
 - [x] Remover os discos antigos (`unused0`) dos CTs 104–106
 - [x] Ordem de boot: NetBox/GLPI `order=1`, Zabbix `order=2,up=60` (validar no próximo reboot)
 - [ ] `intel-microcode` e fuso horário
