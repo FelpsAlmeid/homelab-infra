@@ -11,10 +11,8 @@ VMIDS="${VMIDS:-101 102 103 104 105 106}"
 KEEP_WEEKS="${KEEP_WEEKS:-4}"
 WEEK="$(date +%G-W%V)"
 DEST="${REMOTE}/${WEEK}"
-TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
 
-RCLONE=(rclone --transfers 2 --drive-chunk-size 64M --retries 5 --low-level-retries 20 --stats 0 -v)
+RCLONE=(rclone --transfers 4 --drive-chunk-size 64M --retries 5 --low-level-retries 20 --stats 5m --stats-one-line -v)
 
 log() { echo "[backup-offsite] $*"; }
 
@@ -28,7 +26,11 @@ if pgrep -x vzdump >/dev/null; then
   log "ERRO: vzdump ainda em execução após 2 h"; exit 1
 fi
 
-# 2. Dump mais recente de cada CT
+# 2. Monta a semana numa pasta de preparo com hardlinks (mesmo disco: não ocupa espaço extra)
+#    e envia tudo numa única chamada do rclone (menos overhead por arquivo, uploads em paralelo)
+STAGE="$DUMP_DIR/.offsite-stage/$WEEK"
+rm -rf "$DUMP_DIR/.offsite-stage"
+mkdir -p "$STAGE"
 for id in $VMIDS; do
   last="$(ls -1t "$DUMP_DIR"/vzdump-lxc-"$id"-*.tar.zst 2>/dev/null | head -n1 || true)"
   if [[ -z "$last" ]]; then
@@ -36,18 +38,22 @@ for id in $VMIDS; do
   fi
   base="${last%.tar.zst}"
   log "CT $id -> $(basename "$last")"
+  mkdir -p "$STAGE/ct-$id"
   for f in "$last" "$base.log" "$last.notes"; do
-    if [[ -f "$f" ]]; then "${RCLONE[@]}" copy "$f" "$DEST/ct-$id/"; fi
+    if [[ -f "$f" ]]; then ln -f "$f" "$STAGE/ct-$id/"; fi
   done
 done
 
 # 3. Configuração do host
-HOSTCFG="$TMP/host-config-$(hostname)-$(date +%F).tar.gz"
-tar -czf "$HOSTCFG" --ignore-failed-read \
+mkdir -p "$STAGE/host"
+tar -czf "$STAGE/host/host-config-$(hostname)-$(date +%F).tar.gz" --ignore-failed-read \
   /etc/pve /etc/network /etc/hosts /etc/hostname /etc/fstab \
   /etc/default/grub /etc/grub.d /etc/modprobe.d /etc/sysctl.d \
   /etc/apt/sources.list.d /etc/ssh/sshd_config /etc/systemd/system 2>/dev/null || true
-"${RCLONE[@]}" copy "$HOSTCFG" "$DEST/host/"
+
+log "Enviando $(du -sh "$STAGE" | cut -f1) para $DEST"
+"${RCLONE[@]}" copy "$STAGE" "$DEST"
+rm -rf "$DUMP_DIR/.offsite-stage"
 
 # 4. Retenção: mantém as últimas KEEP_WEEKS semanas
 mapfile -t weeks < <(rclone lsf --dirs-only "$REMOTE" | sed 's#/$##' | sort)
