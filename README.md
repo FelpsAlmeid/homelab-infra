@@ -22,7 +22,11 @@ flowchart LR
       G["CT 106 · GLPI"]
       Z["CT 104 · Zabbix"]
       S["CT 101 · Samba"]
+      HD[("HD de backup<br/>vzdump diário + semanal")]
+      S & L & W & Z & NB & G -.-> HD
     end
+
+    HD -->|"rclone crypt · semanal"| GD[("Google Drive<br/>conta dedicada")]
 ```
 
 Detalhes em [docs/arquitetura.md](docs/arquitetura.md).

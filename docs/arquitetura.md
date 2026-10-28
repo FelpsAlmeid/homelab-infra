@@ -29,3 +29,20 @@
 - **Proxy na nuvem + túnel iniciado pelo roteador:** nenhuma porta aberta na rede local; funciona mesmo atrás de CGNAT.
 - **Túnel dedicado para o proxy**, separado da VPN de administração: o proxy é exposto à internet e não pode ter acesso administrativo.
 - **Banco do monitoramento em disco dedicado:** escrita contínua do Zabbix chegou a travar o host quando dividia o SSD do sistema.
+
+## Backup
+
+```mermaid
+flowchart LR
+    subgraph P["Proxmox VE"]
+      CT["CTs 101–106"] -->|"vzdump snapshot<br/>diário 02:30 · Ollama semanal"| HD[("HD de backup<br/>7 diários · 4 semanais · 3 mensais")]
+      CFG["Configuração do host<br/>/etc/pve, rede, GRUB"]
+    end
+    HD -->|"último dump de cada CT"| R["rclone crypt<br/>timer semanal (dom 05:00)"]
+    CFG --> R
+    R -->|"conteúdo e nomes criptografados"| GD[("Google Drive<br/>conta dedicada · 4 semanas")]
+```
+
+- Dois locais além do disco do sistema: outro disco no mesmo PC e a nuvem.
+- Conta do Drive dedicada (grupo familiar do Google One) com `scope=drive.file`: o token não alcança a conta pessoal.
+- Detalhes e restauração em [`proxmox/host/backup`](../proxmox/host/backup/README.md).
