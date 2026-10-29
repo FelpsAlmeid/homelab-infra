@@ -175,7 +175,7 @@ openclaw mcp tools netbox --include netbox_get_objects,netbox_get_object_by_id,n
 
 | Camada | Controle |
 |---|---|
-| GLPI | Cliente de API restrito ao IP da VM; perfil que vê **só os chamados do grupo NOC** (alertas do Zabbix), sem criar/editar; usuário só com esse perfil |
+| GLPI | Cliente de API restrito ao IP da VM; perfil que vê **só os chamados do grupo NOC** (alertas do Zabbix), sem criar/editar; usuário só com esse perfil e **membro do grupo NOC** (sem isso a API responde "nenhum chamado") |
 | MCP | [`glpi-mcp`](https://github.com/Alan-Gois/glpi-mcp) em commit fixo, instalado local com `npm ci --ignore-scripts`; `GLPI_MCP_READ_ONLY=true` e regex de ferramentas permitidas |
 | OpenClaw | Só `list_tickets`, `get_ticket`, `get_ticket_tasks` e `glpi__*` no sandbox |
 
@@ -212,6 +212,8 @@ O painel mostra as chamadas de ferramenta de cada resposta — útil para audita
 ## Validação
 
 Com o NAT do servidor removido por engano, o agente listou as três quedas reais por ICMP; após a correção, uma nova pergunta consultou o Zabbix de novo e confirmou a normalização.
+
+**Ponta a ponta (29/10):** host de teste sem resposta a ICMP → problema Alta no Zabbix → webhook abriu o chamado #4 no GLPI (link no próprio problema) → o agente listou o problema, encontrou o chamado #4 e consultou o NetBox na mesma conversa.
 
 ## Próximos passos
 - NetBox e GLPI somente leitura

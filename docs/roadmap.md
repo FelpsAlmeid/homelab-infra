@@ -17,8 +17,10 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
   - [x] Instruções do agente para o papel de N2 (PT-BR, só diagnóstico, sem comandos de CLI)
   - [x] NetBox somente leitura (MCP oficial, sem clientes e sem histórico)
   - [x] GLPI somente leitura (só chamados do grupo NOC)
-  - [ ] Teste com chamado real (Zabbix → GLPI → agente)
+  - [x] Teste com chamado real (Zabbix → GLPI → agente): alerta ICMP abriu o chamado #4 e o agente o encontrou
   - [ ] Primeiro caso de uso N2: resumir problemas ativos do Zabbix e chamados abertos no GLPI
+  - [ ] Mostrar o nome do host (não o ID do objeto) nas respostas do Zabbix
+  - [ ] Snapshot `integracoes-ok`
 - [ ] Acesso da equipe do NOC ao Open WebUI (contas sem admin, modelo padrão e *system prompt* em PT-BR, grupos/permissões)
 - [ ] Coleta automática das configurações para este repositório
 
@@ -89,6 +91,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 
 **Zabbix → GLPI** ([zabbix-glpi](../servicos/zabbix-glpi/README.md))
 - [x] Abertura, acompanhamento e solução automática de chamados (validado de novo após a migração e o proxy)
+- [x] Reteste em 29/10 após recriar a macro global `{$GLPI.APP_TOKEN}` apagada por engano
 - [ ] Revogar o token de API usado na configuração e limpar o arquivo de segredos temporário
 - [ ] Migrar para a API nova do GLPI (OAuth) antes da remoção da legada
 
@@ -108,5 +111,5 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 
 ## Próximo passo
 
-1. Teste de ponta a ponta com um alerta real (Zabbix abre chamado, agente cruza Zabbix + NetBox + GLPI).
+1. Primeiro caso de uso N2 (resumo de problemas ativos + chamados) e nome do host nas respostas.
 2. Fechar o monitoramento do backbone e a política de saída dos containers.
