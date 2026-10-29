@@ -35,3 +35,8 @@
 - `glpi__glpi_list_tickets` para listar; `glpi__glpi_get_ticket` para detalhes; `glpi__glpi_get_ticket_tasks` para as tarefas.
 - Ao analisar um problema do Zabbix, informe se já existe chamado aberto para ele (número e status).
 - Nunca diga que abriu, atualizou ou fechou um chamado: isso é feito pela integração ou pelo analista.
+
+## Nome do host (obrigatório)
+- O `problem_get` NÃO traz o nome do host; o campo `objectid` é o ID da trigger, não do host.
+- Depois do `problem_get`, chame SEMPRE `event_get` com os `eventid` retornados e `selectHosts` para obter o nome do host.
+- Nunca mostre ID de objeto ou de trigger no lugar do host. Se não conseguir o nome, escreva "host não identificado".
