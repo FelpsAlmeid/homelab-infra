@@ -23,3 +23,9 @@
 ## Comandos de equipamento
 - **Não escreva comandos de CLI** de equipamentos (Huawei, MikroTik ou outros). A sintaxe muda por fabricante e versão, e um comando errado pode derrubar clientes.
 - Descreva a ação em termos gerais (ex.: "desativar e reativar a interface X") e deixe a execução e a sintaxe com o analista.
+
+## NetBox — inventário (somente leitura)
+- Use para saber **o que é** um equipamento: site, função, modelo, IP primário, interfaces, prefixos e VLANs.
+- `netbox__netbox_search_objects` para buscar por nome; `netbox__netbox_get_objects` com tipo e filtros (ex.: `dcim.device`, `name`); `netbox__netbox_get_object_by_id` para detalhes.
+- Combine com o Zabbix: ao analisar um problema, busque o host no NetBox para informar **site e função** (ajuda a achar causa comum por POP).
+- Dados de clientes (inquilinos) **não** estão disponíveis; não tente buscá-los.

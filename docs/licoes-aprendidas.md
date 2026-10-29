@@ -49,5 +49,8 @@ Problemas reais encontrados na montagem e como foram resolvidos.
 | zabbix-mcp | `Missing required Zabbix URL` com `.env` na pasta | O `.env` não é lido do diretório de trabalho | Script que carrega o `.env` e faz `exec` do servidor |
 | OpenClaw + modelo local | Agente diz que "não tem ferramenta"; log `Unknown tool id: tool_search` | Busca de ferramentas automática para Ollama; modelo pequeno erra a chamada | `tools.toolSearch: false` e poucas ferramentas expostas |
 | OpenClaw | Modelo descreve ferramentas de shell que não tem | Alucinação sobre as próprias capacidades | Validar por config e log, nunca pela resposta |
+| NetBox (token) | "Item 2 na lista não validou" em IPs permitidos | Espaço depois da vírgula | `10.0.10.9/32,::ffff:10.0.10.9/128` sem espaço |
+| NetBox + agente | Permissão sem clientes, mas histórico liberado | O histórico de mudanças copia dados de qualquer objeto | Não liberar `Object change` nem o `get_changelogs` |
+| Firewall do Proxmox | VM sem acesso, `compile` com "unable to parse rule parameters: ]" | Caractere colado no fim da regra | Ler todas as linhas do `compile`, não só o OK |
 | Shell | `Permission denied` ao "abrir" arquivo | Digitar o caminho tenta **executar** o arquivo | `nano <arquivo>` ou `code <arquivo>` |
 

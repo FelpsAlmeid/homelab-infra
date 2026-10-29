@@ -149,6 +149,28 @@ tools: {
 
 Teste: *"Quais problemas estão ativos no Zabbix agora?"* → problemas reais retornados pelo `problem_get`.
 
+## Integração com o NetBox (somente leitura)
+
+| Camada | Controle |
+|---|---|
+| NetBox | Usuário sem staff/superusuário; permissão **só Ver** em dcim/ipam selecionados; **sem** inquilinos (clientes) e **sem** histórico de mudanças; token v2 sem escrita e restrito ao IP da VM (`<ip>/32,::ffff:<ip>/128`, sem espaço) |
+| MCP | [Servidor oficial](https://github.com/netboxlabs/netbox-mcp-server) (somente leitura), fixado numa tag |
+| OpenClaw | Só `get_objects`, `get_object_by_id`, `search_objects` (fora `get_changelogs`) e `netbox__*` no sandbox |
+
+> O histórico de mudanças guarda uma cópia dos dados de qualquer objeto alterado — liberar o `get_changelogs` exporia, por tabela, os tipos que a permissão esconde.
+
+```bash
+mkdir -p ~/.config/netbox-mcp && chmod 700 ~/.config/netbox-mcp
+read -rsp "Token NetBox: " T; echo
+printf 'NETBOX_URL=http://<ip-netbox>:8080/\nNETBOX_TOKEN=%s\nMCP_TRANSPORT=stdio\n' "$T" > ~/.config/netbox-mcp/.env; unset T
+chmod 600 ~/.config/netbox-mcp/.env
+TAG=$(git ls-remote --tags --refs --sort=-v:refname https://github.com/netboxlabs/netbox-mcp-server | head -1 | sed 's#.*refs/tags/##')
+printf '#!/bin/sh\nset -a; . %s/.config/netbox-mcp/.env; set +a\nexec %s/.local/bin/uvx --from git+https://github.com/netboxlabs/netbox-mcp-server@%s netbox-mcp-server\n' "$HOME" "$HOME" "$TAG" > ~/.config/netbox-mcp/run.sh
+chmod 700 ~/.config/netbox-mcp/run.sh
+openclaw mcp add netbox --command ~/.config/netbox-mcp/run.sh --timeout 60
+openclaw mcp tools netbox --include netbox_get_objects,netbox_get_object_by_id,netbox_search_objects
+```
+
 ## Instruções do agente
 
 Papel de N2 do NOC em [`workspace/`](workspace/README.md) (SOUL/AGENTS/IDENTITY), com os testes de regressão.
