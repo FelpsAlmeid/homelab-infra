@@ -171,6 +171,30 @@ openclaw mcp add netbox --command ~/.config/netbox-mcp/run.sh --timeout 60
 openclaw mcp tools netbox --include netbox_get_objects,netbox_get_object_by_id,netbox_search_objects
 ```
 
+## Integração com o GLPI (somente leitura)
+
+| Camada | Controle |
+|---|---|
+| GLPI | Cliente de API restrito ao IP da VM; perfil que vê **só os chamados do grupo NOC** (alertas do Zabbix), sem criar/editar; usuário só com esse perfil |
+| MCP | [`glpi-mcp`](https://github.com/Alan-Gois/glpi-mcp) em commit fixo, instalado local com `npm ci --ignore-scripts`; `GLPI_MCP_READ_ONLY=true` e regex de ferramentas permitidas |
+| OpenClaw | Só `list_tickets`, `get_ticket`, `get_ticket_tasks` e `glpi__*` no sandbox |
+
+```bash
+git clone --depth 1 https://github.com/Alan-Gois/glpi-mcp ~/.local/share/glpi-mcp
+cd ~/.local/share/glpi-mcp && sed -n '/"scripts"/,/}/p' package.json   # revisar antes
+npm ci --ignore-scripts && npm run build && npm audit --omit=dev
+
+mkdir -p ~/.config/glpi-mcp && chmod 700 ~/.config/glpi-mcp
+# .env (600): GLPI_URL=http://<ip-glpi>:8080  GLPI_APP_TOKEN=...  GLPI_USER_TOKEN=...
+#   GLPI_API_VERSION=10  GLPI_MCP_READ_ONLY=true
+#   GLPI_MCP_TOOLS_ALLOW_PATTERN='^glpi_(list_tickets|get_ticket|get_ticket_tasks)$'   # aspas: o .env é lido pelo shell
+printf '#!/bin/sh\nset -a; . %s/.config/glpi-mcp/.env; set +a\nexec /usr/bin/node %s/.local/share/glpi-mcp/dist/index.js\n' "$HOME" "$HOME" > ~/.config/glpi-mcp/run.sh
+chmod 700 ~/.config/glpi-mcp/run.sh
+openclaw mcp add glpi --command ~/.config/glpi-mcp/run.sh --timeout 60
+```
+
+> `npm audit` conta dependências de desenvolvimento; use `--omit=dev` para ver só o que roda. As falhas restantes estavam em transporte HTTP/OAuth, que o modo stdio não usa.
+
 ## Instruções do agente
 
 Papel de N2 do NOC em [`workspace/`](workspace/README.md) (SOUL/AGENTS/IDENTITY), com os testes de regressão.

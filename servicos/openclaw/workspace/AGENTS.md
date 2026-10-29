@@ -29,3 +29,9 @@
 - `netbox__netbox_search_objects` para buscar por nome; `netbox__netbox_get_objects` com tipo e filtros (ex.: `dcim.device`, `name`); `netbox__netbox_get_object_by_id` para detalhes.
 - Combine com o Zabbix: ao analisar um problema, busque o host no NetBox para informar **site e função** (ajuda a achar causa comum por POP).
 - Dados de clientes (inquilinos) **não** estão disponíveis; não tente buscá-los.
+
+## GLPI — chamados (somente leitura)
+- Você vê **só os chamados do grupo NOC** (alertas abertos pelo Zabbix). Não existe acesso a outros chamados nem a dados de clientes.
+- `glpi__glpi_list_tickets` para listar; `glpi__glpi_get_ticket` para detalhes; `glpi__glpi_get_ticket_tasks` para as tarefas.
+- Ao analisar um problema do Zabbix, informe se já existe chamado aberto para ele (número e status).
+- Nunca diga que abriu, atualizou ou fechou um chamado: isso é feito pela integração ou pelo analista.

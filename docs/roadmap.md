@@ -16,7 +16,8 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
   - [x] Zabbix somente leitura: função com lista de permissões (11 métodos `.get`), MCP `zabbix-mcp` em modo leitura com 8 ferramentas expostas, firewall só VM → Zabbix
   - [x] Instruções do agente para o papel de N2 (PT-BR, só diagnóstico, sem comandos de CLI)
   - [x] NetBox somente leitura (MCP oficial, sem clientes e sem histórico)
-  - [ ] GLPI somente leitura
+  - [x] GLPI somente leitura (só chamados do grupo NOC)
+  - [ ] Teste com chamado real (Zabbix → GLPI → agente)
   - [ ] Primeiro caso de uso N2: resumir problemas ativos do Zabbix e chamados abertos no GLPI
 - [ ] Acesso da equipe do NOC ao Open WebUI (contas sem admin, modelo padrão e *system prompt* em PT-BR, grupos/permissões)
 - [ ] Coleta automática das configurações para este repositório
@@ -107,5 +108,5 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 
 ## Próximo passo
 
-1. GLPI somente leitura para o agente.
+1. Teste de ponta a ponta com um alerta real (Zabbix abre chamado, agente cruza Zabbix + NetBox + GLPI).
 2. Fechar o monitoramento do backbone e a política de saída dos containers.

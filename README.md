@@ -72,7 +72,7 @@ Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · Open WebUI · NetBox · 
 | NOC publicado no proxy (só IPs da empresa + MFA) | ✅ |
 | SNMP por equipamento via NetBox (porta/community) | ✅ |
 | Backbone completo no monitoramento | 🔄 |
-| Agente de IA (OpenClaw) em VM isolada, Zabbix somente leitura | ✅ |
+| Agente de IA (OpenClaw) em VM isolada, com Zabbix, NetBox e GLPI somente leitura | ✅ |
 | Backup local + cópia criptografada fora do PC | ✅ |
 
 Roadmap por sistema (Proxmox, Zabbix, NetBox, GLPI, integrações, proxy e IA) em [docs/roadmap.md](docs/roadmap.md).

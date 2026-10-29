@@ -52,5 +52,8 @@ Problemas reais encontrados na montagem e como foram resolvidos.
 | NetBox (token) | "Item 2 na lista não validou" em IPs permitidos | Espaço depois da vírgula | `10.0.10.9/32,::ffff:10.0.10.9/128` sem espaço |
 | NetBox + agente | Permissão sem clientes, mas histórico liberado | O histórico de mudanças copia dados de qualquer objeto | Não liberar `Object change` nem o `get_changelogs` |
 | Firewall do Proxmox | VM sem acesso, `compile` com "unable to parse rule parameters: ]" | Caractere colado no fim da regra | Ler todas as linhas do `compile`, não só o OK |
+| GLPI API | `ERROR_NOT_ALLOWED_IP` com a rede ok | Falta cliente de API ativo para o IP de origem | Cliente de API com a faixa do IP |
+| `.env` lido pelo shell | `Syntax error: "(" unexpected` | Regex com parênteses sem aspas | Valor entre aspas simples |
+| npm | "14 vulnerabilidades" ao instalar | Contagem inclui dependências de desenvolvimento | `npm audit --omit=dev`; `npm ci --ignore-scripts` |
 | Shell | `Permission denied` ao "abrir" arquivo | Digitar o caminho tenta **executar** o arquivo | `nano <arquivo>` ou `code <arquivo>` |
 
