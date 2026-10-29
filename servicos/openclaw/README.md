@@ -149,6 +149,10 @@ tools: {
 
 Teste: *"Quais problemas estão ativos no Zabbix agora?"* → problemas reais retornados pelo `problem_get`.
 
+## Instruções do agente
+
+Papel de N2 do NOC em [`workspace/`](workspace/README.md) (SOUL/AGENTS/IDENTITY), com os testes de regressão.
+
 ## Painel web
 
 O gateway escuta só em loopback; o acesso é por túnel SSH a partir da rede de administração:
@@ -164,5 +168,4 @@ O painel mostra as chamadas de ferramenta de cada resposta — útil para audita
 Com o NAT do servidor removido por engano, o agente listou as três quedas reais por ICMP; após a correção, uma nova pergunta consultou o Zabbix de novo e confirmou a normalização.
 
 ## Próximos passos
-- Instruções do agente para o papel de N2
 - NetBox e GLPI somente leitura

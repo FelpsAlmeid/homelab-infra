@@ -14,7 +14,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
   - [x] Modelo local (gemma4:12b, 32K) respondendo pela API nativa do Ollama
   - [x] Sandbox `all` (sem rede, raiz somente leitura, sem root), ferramentas de shell/arquivos/web negadas, `security audit` sem críticos
   - [x] Zabbix somente leitura: função com lista de permissões (11 métodos `.get`), MCP `zabbix-mcp` em modo leitura com 8 ferramentas expostas, firewall só VM → Zabbix
-  - [ ] Instruções do agente para o papel de N2 (PT-BR, nome do host via `event_get`, nunca sugerir alterações)
+  - [x] Instruções do agente para o papel de N2 (PT-BR, só diagnóstico, sem comandos de CLI)
   - [ ] NetBox e GLPI somente leitura
   - [ ] Primeiro caso de uso N2: resumir problemas ativos do Zabbix e chamados abertos no GLPI
 - [ ] Acesso da equipe do NOC ao Open WebUI (contas sem admin, modelo padrão e *system prompt* em PT-BR, grupos/permissões)
@@ -106,6 +106,5 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 
 ## Próximo passo
 
-1. Instruções do agente para o papel de N2 (respostas em PT-BR, nome do host, todas as severidades, só diagnóstico).
-2. NetBox e GLPI somente leitura para o agente.
-3. Fechar o monitoramento do backbone e a política de saída dos containers.
+1. NetBox e GLPI somente leitura para o agente.
+2. Fechar o monitoramento do backbone e a política de saída dos containers.
