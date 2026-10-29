@@ -47,6 +47,7 @@ systemctl start backup-offsite.service && journalctl -u backup-offsite -f   # pr
 rclone lsf gdrive-vms-crypt:semanal/                       # semanas disponíveis
 rclone copy gdrive-vms-crypt:semanal/<SEMANA>/ct-<ID>/ /mnt/hd-antigo/dump/ -P
 pct restore <ID> /mnt/hd-antigo/dump/vzdump-lxc-<ID>-....tar.zst --storage <storage>
+# VM: pasta vm-<ID>/ e  qmrestore /mnt/hd-antigo/dump/vzdump-qemu-<ID>-....vma.zst <ID> --storage <storage>
 ```
 Em um servidor novo: instalar o rclone, recriar `gdrive-vms` (mesma conta) e `gdrive-vms-crypt` com **a mesma senha e salt**.
 
