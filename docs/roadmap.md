@@ -20,7 +20,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
   - [x] Teste com chamado real (Zabbix → GLPI → agente): alerta ICMP abriu o chamado #4 e o agente o encontrou
   - [ ] Primeiro caso de uso N2: resumir problemas ativos do Zabbix e chamados abertos no GLPI
   - [ ] Mostrar o nome do host (não o ID do objeto) nas respostas do Zabbix
-  - [ ] Snapshot `integracoes-ok`
+  - [x] Snapshot `integracoes-funcionando`
 - [ ] Acesso da equipe do NOC ao Open WebUI (contas sem admin, modelo padrão e *system prompt* em PT-BR, grupos/permissões)
 - [ ] Coleta automática das configurações para este repositório
 
