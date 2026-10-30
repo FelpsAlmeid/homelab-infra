@@ -1,6 +1,6 @@
 # Sincronização NetBox → Zabbix
 
-O NetBox é a fonte da verdade: os equipamentos marcados com a tag `zabbix` viram hosts no Zabbix automaticamente, com grupo e template definidos pelo próprio NetBox.
+O NetBox é a fonte da verdade: os equipamentos marcados com a tag `zabbix` viram hosts no Zabbix automaticamente, com grupo e template definidos pelo próprio NetBox. **Padrão: ICMP Ping**; SNMP e templates específicos só por exceção, no *local config context* do device.
 
 Ferramenta: [netbox-zabbix-sync](https://github.com/TheNetworkGuy/netbox-zabbix-sync) (4.1.0), em virtualenv no container do Zabbix, rodando por um systemd timer a cada 15 minutos.
 
@@ -9,7 +9,7 @@ Ferramenta: [netbox-zabbix-sync](https://github.com/TheNetworkGuy/netbox-zabbix-
 ```mermaid
 flowchart LR
     NB["NetBox<br/>tag zabbix + Active + IP primário"] -->|a cada 15 min| S[netbox-zabbix-sync]
-    S -->|cria/atualiza host<br/>grupo site/role<br/>template do tipo| Z[Zabbix]
+    S -->|cria/atualiza host<br/>grupo site/role<br/>template do config context| Z[Zabbix]
     S -->|grava zabbix_hostid| NB
 ```
 
@@ -18,35 +18,44 @@ flowchart LR
 | Objeto | Campo | Uso |
 |---|---|---|
 | Device | `zabbix_hostid` (Integer) | ID do host no Zabbix, gravado pela ferramenta |
-| Device type | `zabbix_template` (Text, padrão `Mikrotik by SNMP`) | Template aplicado aos dispositivos daquele tipo |
+| Device type | `zabbix_template` (Text) | Não usado desde 30/10/2026 — o template vem do config context (mantido como reserva) |
 | Tag | `zabbix` | Seleciona o que é monitorado |
 
 ## Configuração (resumo de `config.py`)
 
 - Filtro: tag `zabbix`, status ativo, com IP primário
 - Grupos de hosts: `site/role` (ex.: `POP Centro/Concentrador`)
-- Template: campo `zabbix_template` do tipo de dispositivo
-- Interface SNMP definida por **config context** no NetBox (veja abaixo); community pela macro `{$SNMP_COMMUNITY}`
+- Template: **config context** (`templates_config_context = True` e `templates_config_context_overrule = True` — o contexto prevalece sobre o campo do tipo)
+- Interface definida por **config context** no NetBox (veja abaixo); community pela macro `{$SNMP_COMMUNITY}`
 - `usermacro_sync = "full"`: macros do host vêm do NetBox (inclusive secretas)
 - Tokens em `/etc/netbox-zabbix-sync/sync.env` (permissão 600), carregado pelo systemd
 
-## Porta e community por equipamento (config context)
+## Template, porta e community por equipamento (config context)
 
-Nem todos os equipamentos usam a porta 161 nem a mesma community. Editar a interface no Zabbix não adianta (o sync sobrescreve), então tudo fica no NetBox:
+A maioria dos equipamentos só precisa de ping; os SNMP têm template, porta e community próprios. Editar a interface no Zabbix não adianta (o sync sobrescreve), então tudo fica no NetBox:
 
 | Camada no NetBox | Arquivo | Uso |
 |---|---|---|
-| Config context global (tag `zabbix`, peso 1000) | [`zabbix-snmp-padrao.json`](config-context/zabbix-snmp-padrao.json) | Interface SNMP v2, porta 161, community `{$SNMP_COMMUNITY}` (global) |
-| *Local config context* do device | [`device-local.example.json`](config-context/device-local.example.json) | Só as exceções: `interface_port` e/ou macro `{$SNMP_COMMUNITY}` secreta |
+| Config context global `zabbix-padrao-icmp` (só a tag `zabbix`, peso 1000) | [`zabbix-padrao-icmp.json`](config-context/zabbix-padrao-icmp.json) | Template **ICMP Ping**; interface tipo 1 só para o Zabbix saber o IP (sem agente) |
+| *Local config context* do device SNMP | [`device-local.example.json`](config-context/device-local.example.json) | Interface SNMP completa (`interface_type: 2`, porta, `snmp`), `templates` e macro `{$SNMP_COMMUNITY}` secreta |
 
-O NetBox mescla as duas camadas (o local prevalece). No Zabbix a interface continua com `{$SNMP_COMMUNITY}`; o valor vem da macro do host (prioridade: host → template → global).
+O NetBox mescla as duas camadas (o local prevalece). Listas **não se somam**: o `templates` do local substitui o do global, então o SNMP fica só com o template dele. No Zabbix a interface continua com `{$SNMP_COMMUNITY}`; o valor vem da macro do host (prioridade: host → template → global).
 
 Detalhes da versão 4.1.0 (lidos no código):
-- `interface_port` só é lido se `interface_type` existir no context — por isso o global declara a interface completa, e o exemplo local repete `interface_type: 2` (se o global não for aplicado ao device, a porta e o `snmp` locais são **ignorados em silêncio** e a interface volta para 161).
-- Conferir sempre a aba *Contexto de configuração → Dados renderizados* do device: se faltar `"community": "{$SNMP_COMMUNITY}"` dentro de `snmp`, o global não está casando (ativo? só a tag `zabbix` como critério?).
+- `interface_port` só é lido se `interface_type` existir no context — o local dos SNMP declara a interface completa.
+- `interface_type` do contexto é aplicado **mesmo sem** `templates_config_context`: com o global ativo, um SNMP sem local recebe interface tipo 1.
+- Conferir a aba *Contexto de configuração* do device: **Contextos de Origem** mostra se o global está casando; o renderizado deve ter só o template certo.
+
+**Ordem segura para ligar o template por contexto** (ou mudar o global):
+1. Local completo em **todos** os SNMP (`interface_type: 2`, `snmp`, `templates`, macro)
+2. Global ativo
+3. `config.py` → `templates_config_context` e `overrule` em `True`
+4. `systemctl start netbox-zabbix-sync.service` e ler o log
+
+> Fora dessa ordem, o sync troca o template SNMP pelo ICMP Ping com `templates_clear` — **itens e histórico do template removido são apagados**. Depois de corrigir, forçar as regras de descoberta (*Executar agora*).
 - `bulk: 0` (sem requisições combinadas) usado no equipamento atrás de NAT/redirecionamento de porta: respostas UDP grandes podem não voltar.
 - Com `interface_type: 2` o bloco `snmp` com `version` é obrigatório.
-- `usermacro_sync`: `True` sincroniza; `"full"` também força o reenvio (a API do Zabbix não devolve o valor de macros secretas, então só o `full` propaga uma troca de community).
+- `usermacro_sync`: `True` sincroniza; `"full"` também força o reenvio (a API do Zabbix não devolve o valor de macros secretas, então só o `full` propaga uma troca de community). Efeito colateral normal: `Usermacros OUT of sync` em **toda** execução nos hosts com macro secreta.
 - Com o sync de macros ligado, **macros criadas à mão no host são substituídas** pelas do NetBox. Migre as exceções para o NetBox antes de ligar.
 - O mapeamento padrão (`device_usermacro_map`) também cria `{$DEV_ROLE}`, `{$NB_ID}`, `{$NB_URL}` e `{$HW_SERIAL}` (este só se o device tiver serial).
 
@@ -78,7 +87,8 @@ sed -i 's/^    sanitized_data = data.copy()$/    import copy\n    sanitized_data
 
 ## Operação
 
-- Novo equipamento: Active + IP primário → conferir `zabbix_template` do **tipo** → tag `zabbix`.
+- Novo equipamento só ICMP: Active + IP primário → tag `zabbix`.
+- Novo equipamento SNMP: Active + IP primário → *local config context* completo → **depois** a tag `zabbix`.
 - Remover: mudar o status para Decommissioning/Inventory **antes** de tirar a tag; senão o host fica órfão no Zabbix.
 - O NetBox manda: template, grupos, interface e macros editados à mão no Zabbix são sobrescritos. Porta/community diferente → *local config context* do device.
 - **Nunca** crie uma segunda interface SNMP à mão: o sync para com `Multiple interfaces of the same type ... manual intervention required` e deixa de atualizar o host.

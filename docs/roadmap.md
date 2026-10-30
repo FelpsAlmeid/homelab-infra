@@ -59,16 +59,16 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [x] Communities como macros secretas
 - [x] Publicado no proxy (Access List, `/api_jsonrpc.php` bloqueado) com MFA
 - [x] Porta e community SNMP por equipamento vindas do NetBox (config context)
-- [ ] Config context global aplicado a **todos** os devices com a tag `zabbix`
+- [x] Config context global aplicado a **todos** os devices com a tag `zabbix` (`zabbix-padrao-icmp`, 30/10)
 - [x] Equipamentos já sincronizados com SNMP ok (local context em cada um)
 - [ ] Restante do backbone (~20 equipamentos) com a tag `zabbix`
 - [ ] Testar `bulk: 1` no equipamento atrás de NAT (manter `0` se der timeout)
-- [ ] Template para o modelo NetEngine 8000 (se for monitorado)
+- [x] ~~Template para o modelo NetEngine 8000~~ — template vem do config context (30/10)
 - [ ] Role própria para a conta do sync (sair do Super admin)
 - [ ] Avaliar SNMPv3 nos equipamentos principais
 
 **Expansão para ~450 dispositivos do provedor (~50 SNMP, ~400 ICMP)** — cadastro pelo NetBox, entrada no Zabbix pelo sync
-- [ ] Template **padrão = ICMP Ping** para todo device com a tag `zabbix`; SNMP e templates específicos só por exceção, informados no NetBox (tipo/contexto local)
+- [x] Template **padrão = ICMP Ping** para todo device com a tag `zabbix`; SNMP e templates específicos só por exceção no **contexto local** (`templates_config_context` + `overrule`, 30/10)
 - [ ] Importação em massa por CSV no NetBox
 - [ ] Dependências de triggers (equipamento atrás de POP/concentrador não alerta se o pai cair) e severidade por função, para não abrir dezenas de chamados no GLPI numa queda
 - [x] CT 104 dimensionado (30/10): 4 núcleos, 6 GB, 80 GB; `StartPingers=5` e caches em `zabbix_server.d/90-escala.conf`; PostgreSQL `shared_buffers` 1 GB
@@ -142,7 +142,7 @@ Rodada de testes de segurança e de uso no dia a dia, antes de considerar o proj
 
 ## Próximo passo
 
-1. **Zabbix em escala (~450 dispositivos):** contexto global com ICMP padrão, dependências/severidades, dimensionamento do CT 104 e importação CSV no NetBox.
+1. **Zabbix em escala (~450 dispositivos):** dependências/severidades, filtro de interfaces no LLD e importação CSV no NetBox (ICMP padrão e dimensionamento do CT 104 concluídos em 30/10).
 2. Política de saída dos containers (egress) — o Zabbix vai precisar alcançar as novas redes.
 3. Primeiro caso de uso N2 e validação do nome do host nas respostas (com os alertas reais).
 4. Grafana; depois serviços pessoais em VLAN separada.

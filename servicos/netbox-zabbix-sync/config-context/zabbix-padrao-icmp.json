@@ -1,0 +1,7 @@
+{
+  "zabbix": {
+    "interface_type": 1,
+    "interface_port": 10050,
+    "templates": ["ICMP Ping"]
+  }
+}
