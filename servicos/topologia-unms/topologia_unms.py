@@ -116,6 +116,19 @@ def carregar():
         print(f"{len(fora)} devices ignorados por ignorar.txt/manter.txt")
     for did in info:
         viz.setdefault(did, {})
+    par = defaultdict(lambda: {"TX": [], "RX": []})        # JATOBA_TX <-> JATOBA_RX
+    for d, x in info.items():
+        m = re.search(r"(^|[ _-])(TX|RX)(?=[ _-]|$)", x["nome"], re.I)
+        if m:
+            base = re.sub(r"[ _-]+", "_", (x["nome"][:m.start(2)] + x["nome"][m.end(2):]).strip(" _-")).lower()
+            par[base][m.group(2).upper()].append(d)
+    n = 0
+    for base, p in par.items():
+        if len(p["TX"]) == 1 and len(p["RX"]) == 1 and p["RX"][0] not in viz[p["TX"][0]]:
+            liga(p["TX"][0], p["RX"][0], "par TX/RX (inferido)")
+            n += 1
+    if n:
+        print(f"{n} vínculos inferidos por par TX/RX no nome")
     return info, viz
 
 
@@ -189,6 +202,31 @@ def arvore():
                     pai[y], prof[y], origem[y], ramo[y] = x, prof[x] + 1, o, n
                     fila.append(y)
     ciclos = sum(1 for a in prof for b in viz[a] if b in prof and a < b) - len(pai)
+    mudou, inferidos = True, 0                              # soltos -> entrada do mesmo site já na árvore
+    while mudou:
+        mudou = False
+        entrada = {}
+        for d in prof:
+            st = info[d]["site"]
+            if st and (st not in entrada or (prof[d], not info[d]["ip"]) < (prof[entrada[st]], not info[entrada[st]]["ip"])):
+                entrada[st] = d
+        for comp in componentes({k: v for k, v in viz.items() if k not in prof}):
+            alvo = next((entrada[info[d]["site"]] for d in comp if info[d]["site"] in entrada), None)
+            if not alvo:
+                continue
+            ponta = next(d for d in comp if info[d]["site"] == info[alvo]["site"])
+            pai[ponta], prof[ponta], origem[ponta], ramo[ponta] = alvo, prof[alvo] + 1, "mesmo site (inferido)", ramo[alvo]
+            fila = deque([ponta])
+            while fila:
+                x = fila.popleft()
+                for y, o in sorted(viz[x].items()):
+                    if y not in prof:
+                        pai[y], prof[y], origem[y], ramo[y] = x, prof[x] + 1, o, ramo[x]
+                        fila.append(y)
+            inferidos += 1
+            mudou = True
+    if inferidos:
+        print(f"{inferidos} grupos soltos pendurados pela regra do mesmo site (conferir)")
     sem_raiz = [d for d in info if d not in prof]
     with open("topologia-revisao.csv", "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh, delimiter=";")
