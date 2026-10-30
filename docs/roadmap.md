@@ -121,7 +121,29 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [ ] Modelo padrão e *system prompt* para o NOC
 - [ ] Contas da equipe e grupos de permissão
 
+## Consolidação (final do projeto)
+
+Rodada de testes de segurança e de uso no dia a dia, antes de considerar o projeto concluído.
+
+**Segurança**
+- [ ] Varredura de portas de fora (4G) e de dentro (VLAN 1010): só o esperado aberto
+- [ ] Revisão de firewall (Proxmox `.fw`, `DOCKER-USER`, Access Lists do NPM) contra a documentação
+- [ ] Revisão de tokens e usuários de API: permissões mínimas, IP restrito, rotação dos antigos
+- [ ] Teste do agente OpenClaw contra *prompt injection* (texto malicioso em chamado/descrição do NetBox) e tentativa de escrita
+- [ ] Cabeçalhos HTTPS, TLS e MFA dos serviços publicados
+- [ ] Atualizações pendentes e avisos de segurança (Proxmox, CTs, VM, Docker)
+- [ ] Restauração completa simulada (servidor perdido, só Drive + Kaspersky)
+
+**Uso no dia a dia**
+- [ ] Rotina do NOC usando os sistemas por uma semana e anotar atritos
+- [ ] Alertas: ruído, falsos positivos, chamados duplicados
+- [ ] Painéis e acessos da equipe (Open WebUI, Grafana) com contas próprias
+- [ ] Documentação final revisada (README, roadmap, segundo cérebro)
+
 ## Próximo passo
 
-1. Primeiro caso de uso N2 (resumo de problemas ativos + chamados) e nome do host nas respostas.
-2. Fechar o monitoramento do backbone e a política de saída dos containers.
+1. **Zabbix em escala (~450 dispositivos):** contexto global com ICMP padrão, dependências/severidades, dimensionamento do CT 104 e importação CSV no NetBox.
+2. Política de saída dos containers (egress) — o Zabbix vai precisar alcançar as novas redes.
+3. Primeiro caso de uso N2 e validação do nome do host nas respostas (com os alertas reais).
+4. Grafana; depois serviços pessoais em VLAN separada.
+5. Consolidação: testes de segurança e de uso.
