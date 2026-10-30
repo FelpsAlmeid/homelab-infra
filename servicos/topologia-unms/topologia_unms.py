@@ -11,6 +11,7 @@ Uso:
   2) Ver os ramos (componentes) e escolher a raiz de cada um:
        python3 topologia_unms.py ramos                 # gera ramos.csv
        -> preencher pops.txt (sites de entrada: POPs e sites que recebem link de fora do UNMS, um por linha): todo device nesses sites vira raiz
+       -> sites-pai.txt: "SITE;SITE PAI" para cada site de sites-sem-ramo.csv (de onde a torre recebe o link)
        -> (opcional) raizes.txt: nome ou IP de device de entrada de ramo que não passa por POP
        (opcional) manter.txt: só ficam os nomes que casam com algum regex (padrões de infraestrutura)
        (opcional) ignorar.txt: um regex de nome por linha a descartar (bancada, teste)
@@ -220,31 +221,58 @@ def arvore():
                     pai[y], prof[y], origem[y], ramo[y] = x, prof[x] + 1, o, n
                     fila.append(y)
     ciclos = sum(1 for a in prof for b in viz[a] if b in prof and a < b) - len(pai)
-    mudou, inferidos = True, 0                              # soltos -> entrada do mesmo site já na árvore
+    site_pai = {}
+    if os.path.exists("sites-pai.txt"):                     # "SITE;SITE PAI" (de onde a torre recebe o link)
+        for l in open("sites-pai.txt", encoding="utf-8-sig"):
+            if ";" in l and not l.startswith("#"):
+                a, b = (p.strip().lower() for p in l.split(";", 1))
+                if a and b:
+                    site_pai[a] = b
+    mudou, inferidos, por_pai = True, 0, 0                  # soltos -> entrada do mesmo site / do site pai
+    entrada = {}
     while mudou:
         mudou = False
         entrada = {}
         for d in prof:
-            st = info[d]["site"]
+            st = info[d]["site"].strip().lower()
             if st and (st not in entrada or (prof[d], not info[d]["ip"]) < (prof[entrada[st]], not info[entrada[st]]["ip"])):
                 entrada[st] = d
         for comp in componentes({k: v for k, v in viz.items() if k not in prof}):
-            alvo = next((entrada[info[d]["site"]] for d in comp if info[d]["site"] in entrada), None)
+            alvo = ponta = o = None
+            for d in comp:
+                st = info[d]["site"].strip().lower()
+                if st in entrada:
+                    alvo, ponta, o = entrada[st], d, "mesmo site (inferido)"
+                    break
+            if not alvo:
+                for d in comp:
+                    st = info[d]["site"].strip().lower()
+                    if site_pai.get(st) in entrada:
+                        alvo, ponta, o = entrada[site_pai[st]], d, "site pai (informado)"
+                        break
             if not alvo:
                 continue
-            ponta = next(d for d in comp if info[d]["site"] == info[alvo]["site"])
-            pai[ponta], prof[ponta], origem[ponta], ramo[ponta] = alvo, prof[alvo] + 1, "mesmo site (inferido)", ramo[alvo]
+            pai[ponta], prof[ponta], origem[ponta], ramo[ponta] = alvo, prof[alvo] + 1, o, ramo[alvo]
             fila = deque([ponta])
             while fila:
                 x = fila.popleft()
-                for y, o in sorted(viz[x].items()):
+                for y, oy in sorted(viz[x].items()):
                     if y not in prof:
-                        pai[y], prof[y], origem[y], ramo[y] = x, prof[x] + 1, o, ramo[x]
+                        pai[y], prof[y], origem[y], ramo[y] = x, prof[x] + 1, oy, ramo[x]
                         fila.append(y)
-            inferidos += 1
+            if o.startswith("mesmo"):
+                inferidos += 1
+            else:
+                por_pai += 1
             mudou = True
+            break                                           # recalcula as entradas a cada grupo pendurado
     if inferidos:
         print(f"{inferidos} grupos soltos pendurados pela regra do mesmo site (conferir)")
+    if por_pai:
+        print(f"{por_pai} grupos pendurados pelo sites-pai.txt")
+    for a, b in sorted(site_pai.items()):
+        if b not in entrada:
+            print(f"AVISO sites-pai.txt: '{a}' -> '{b}': site pai fora da árvore (sem pai também, ou nome diferente do UNMS)")
     sem_raiz = [d for d in info if d not in prof]
     with open("topologia-revisao.csv", "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh, delimiter=";")
@@ -264,6 +292,15 @@ def arvore():
             w.writerow([ramo.get(d, ""), prof.get(d, ""), x["nome"], x["ip"], x["modelo"], x["tipo"], x["modo"], x["site"],
                         x["site_pai"], info[p]["nome"] if p else "", info[p]["ip"] if p else "", origem.get(d, ""),
                         "; ".join(obs), ""])
+    pend = defaultdict(int)
+    for d in sem_raiz:
+        pend[info[d]["site"] or "(sem site)"] += 1
+    with open("sites-sem-ramo.csv", "w", newline="", encoding="utf-8-sig") as fh:
+        w = csv.writer(fh, delimiter=";")
+        w.writerow(["site", "site_pai (preencher)", "qtd_devices", "devices"])
+        for st, q in sorted(pend.items(), key=lambda t: (-t[1], t[0])):
+            w.writerow([st, "", q, " | ".join(sorted(info[d]["nome"] for d in sem_raiz if (info[d]["site"] or "(sem site)") == st))])
+    print(f"{len(pend)} sites sem ramo -> sites-sem-ramo.csv")
     print(f"{len(prof)} devices em {len(raizes)} ramos · {len(sem_raiz)} sem ramo · vínculos extras (possível laço): {max(ciclos, 0)}")
     print("-> topologia-revisao.csv")
 

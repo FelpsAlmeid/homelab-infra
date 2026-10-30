@@ -19,6 +19,7 @@ python3 topologia_unms.py ramos             # ramos.csv
 nano manter.txt                             # (opcional) regex dos padrões de nome de infraestrutura (o resto sai)
 nano ignorar.txt                            # (opcional) regex de nomes a descartar: bancada, teste
 nano pops.txt                                # sites do UNMS que são POP (um por linha): seus devices viram raiz
+nano sites-pai.txt                           # "SITE;SITE PAI" para cada site de sites-sem-ramo.csv
 nano raizes.txt                             # (opcional) nome ou IP de entrada de ramo que não passa por POP
 python3 topologia_unms.py arvore            # topologia-revisao.csv
 ```
