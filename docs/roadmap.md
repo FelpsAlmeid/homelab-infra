@@ -65,6 +65,17 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [ ] Role própria para a conta do sync (sair do Super admin)
 - [ ] Avaliar SNMPv3 nos equipamentos principais
 
+**Expansão para ~450 dispositivos do provedor (~50 SNMP, ~400 ICMP)** — cadastro pelo NetBox, entrada no Zabbix pelo sync
+- [ ] Template **padrão = ICMP Ping** para todo device com a tag `zabbix`; SNMP e templates específicos só por exceção, informados no NetBox (tipo/contexto local)
+- [ ] Importação em massa por CSV no NetBox
+- [ ] Dependências de triggers (equipamento atrás de POP/concentrador não alerta se o pai cair) e severidade por função, para não abrir dezenas de chamados no GLPI numa queda
+- [ ] Dimensionar o CT 104 (`StartPingers`, pollers SNMP assíncronos, CPU/RAM/disco, retenção do histórico)
+- [ ] Decidir sobre a disponibilidade: o servidor é um PC com dual boot (no Windows = NOC sem monitoramento)
+
+**Novos serviços (depois)**
+- [ ] Grafana (CT leve, plugin do Zabbix com usuário somente leitura, publicado no proxy)
+- [ ] Serviços pessoais (TeamSpeak/CS2) em VLAN separada, fora da documentação da empresa
+
 ## NetBox
 
 - [x] Restaurado do servidor antigo, convertido para não privilegiado
