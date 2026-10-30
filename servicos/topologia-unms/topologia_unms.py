@@ -11,7 +11,8 @@ Uso:
   2) Ver os ramos (componentes) e escolher a raiz de cada um:
        python3 topologia_unms.py ramos                 # gera ramos.csv
        -> preencher raizes.txt (nome ou IP do device de entrada de cada ramo, um por linha)
-       (opcional) ignorar.txt: um regex de nome por linha (bancada, teste, CPE fora de site de cliente)
+       (opcional) manter.txt: só ficam os nomes que casam com algum regex (padrões de infraestrutura)
+       (opcional) ignorar.txt: um regex de nome por linha a descartar (bancada, teste)
   3) Gerar a planilha de revisão:
        python3 topologia_unms.py arvore                # gera topologia-revisao.csv
 """
@@ -100,7 +101,11 @@ def carregar():
     pad = []
     if os.path.exists("ignorar.txt"):                        # um regex por linha (sem diferenciar maiúsculas)
         pad = [re.compile(l.strip(), re.I) for l in open("ignorar.txt", encoding="utf-8") if l.strip() and not l.startswith("#")]
-    fora = {d for d, x in info.items() if any(p.search(x["nome"]) for p in pad)}
+    manter = []
+    if os.path.exists("manter.txt"):                         # se existir, só fica quem casa com algum regex
+        manter = [re.compile(l.strip(), re.I) for l in open("manter.txt", encoding="utf-8") if l.strip() and not l.startswith("#")]
+    fora = {d for d, x in info.items() if any(p.search(x["nome"]) for p in pad)
+            or (manter and not any(p.search(x["nome"]) for p in manter))}
     for d in fora:
         info.pop(d)
         viz.pop(d, None)
@@ -108,7 +113,7 @@ def carregar():
         for d in fora:
             v.pop(d, None)
     if fora:
-        print(f"{len(fora)} devices ignorados por ignorar.txt")
+        print(f"{len(fora)} devices ignorados por ignorar.txt/manter.txt")
     for did in info:
         viz.setdefault(did, {})
     return info, viz
