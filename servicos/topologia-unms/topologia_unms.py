@@ -10,7 +10,8 @@ Uso:
        python3 topologia_unms.py coletar
   2) Ver os ramos (componentes) e escolher a raiz de cada um:
        python3 topologia_unms.py ramos                 # gera ramos.csv
-       -> preencher pops.txt (sites de entrada: POPs e sites que recebem link de fora do UNMS, um por linha): todo device nesses sites vira raiz
+       -> preencher pops.txt (sites de entrada: POPs e sites que recebem link de fora do UNMS, um por linha;
+          opcional "SITE;POP de origem"): todo device nesses sites vira raiz
        -> sites-pai.txt: "SITE;SITE PAI" para cada site de sites-sem-ramo.csv (de onde a torre recebe o link)
        -> (opcional) raizes.txt: nome ou IP de device de entrada de ramo que não passa por POP
        (opcional) manter.txt: só ficam os nomes que casam com algum regex (padrões de infraestrutura)
@@ -199,9 +200,14 @@ def arvore():
                 print(f"AVISO raiz '{nome}': {'não encontrada' if not ids else 'nome duplicado'}")
                 continue
             raizes.append(ids[0])
-    pops = set()
+    pops, pop_origem = set(), {}
     if os.path.exists("pops.txt"):                          # nomes dos sites do UNMS que são POP
-        pops = {l.strip().lower() for l in open("pops.txt", encoding="utf-8") if l.strip() and not l.startswith("#")}
+        for l in open("pops.txt", encoding="utf-8-sig"):    # "SITE" ou "SITE;POP de origem"
+            if l.strip() and not l.startswith("#"):
+                a, _, b = l.partition(";")
+                pops.add(a.strip().lower())
+                if b.strip():
+                    pop_origem[a.strip().lower()] = b.strip()
         achados = {x["site"].strip().lower() for x in info.values()}
         for p in sorted(pops - achados):
             print(f"AVISO pops.txt: site '{p}' não encontrado")
@@ -283,8 +289,13 @@ def arvore():
             x, p = info[d], pai.get(d)
             obs = []
             if d in raizes:
-                obs.append("RAIZ (site de entrada) - informar o uplink à mão (BNG/switch do POP ou enlace de origem)" if x["site"].strip().lower() in pops
-                           else "RAIZ DO RAMO - informar o uplink no POP/BNG")
+                st = x["site"].strip().lower()
+                if st in pop_origem:
+                    obs.append(f"RAIZ (site de entrada) - uplink à mão no POP {pop_origem[st]} (switch/OLT)")
+                elif st in pops:
+                    obs.append("RAIZ (site de entrada) - informar o uplink à mão (BNG/switch do POP ou enlace de origem)")
+                else:
+                    obs.append("RAIZ DO RAMO - informar o uplink no POP/BNG")
             if d not in prof:
                 obs.append("SEM RAMO - definir raiz ou uplink manual")
             if not x["ip"]:
