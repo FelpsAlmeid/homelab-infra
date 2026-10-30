@@ -71,7 +71,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [ ] Template **padrão = ICMP Ping** para todo device com a tag `zabbix`; SNMP e templates específicos só por exceção, informados no NetBox (tipo/contexto local)
 - [ ] Importação em massa por CSV no NetBox
 - [ ] Dependências de triggers (equipamento atrás de POP/concentrador não alerta se o pai cair) e severidade por função, para não abrir dezenas de chamados no GLPI numa queda
-- [ ] Dimensionar o CT 104 (`StartPingers`, pollers SNMP assíncronos, CPU/RAM/disco, retenção do histórico)
+- [x] CT 104 dimensionado (30/10): 4 núcleos, 6 GB, 80 GB; `StartPingers=5` e caches em `zabbix_server.d/90-escala.conf`; PostgreSQL `shared_buffers` 1 GB
 - [ ] Decidir sobre a disponibilidade: o servidor é um PC com dual boot (no Windows = NOC sem monitoramento)
 
 **Novos serviços (depois)**
@@ -119,7 +119,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 
 - [x] Ollama em LXC não privilegiado com a GPU
 - [x] ~~Open WebUI publicado com HTTPS~~ → desativado em 30/10 (CT 103 parado, fora do backup e do proxy; apagar na Consolidação)
-- [ ] Ajustar a RAM do CT 102 conforme o `ollama ps` (100% GPU → 8 GB)
+- [x] RAM do CT 102 conferida (30/10): 8 GB, modelo 100% na GPU, uso real ~2 GB
 
 ## Consolidação (final do projeto)
 
