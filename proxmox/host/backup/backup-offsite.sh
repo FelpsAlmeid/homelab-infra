@@ -7,7 +7,7 @@ set -euo pipefail
 
 DUMP_DIR="${DUMP_DIR:-/mnt/hd-antigo/dump}"
 REMOTE="${REMOTE:-gdrive-vms-crypt:semanal}"
-VMIDS="${VMIDS:-101 102 103 104 105 106 107}"
+VMIDS="${VMIDS:-101 102 104 105 106 107}"   # 103 (Open WebUI) desativado em 30/10
 KEEP_WEEKS="${KEEP_WEEKS:-4}"
 WEEK="$(date +%G-W%V)"
 DEST="${REMOTE}/${WEEK}"

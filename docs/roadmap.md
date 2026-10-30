@@ -21,7 +21,8 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
   - [ ] Primeiro caso de uso N2: resumir problemas ativos do Zabbix e chamados abertos no GLPI
   - [ ] Mostrar o nome do host nas respostas do Zabbix — regra aplicada no AGENTS.md; **validar no próximo problema ativo**
   - [x] Snapshot `integracoes-funcionando`
-- [ ] Acesso da equipe do NOC ao Open WebUI (contas sem admin, modelo padrão e *system prompt* em PT-BR, grupos/permissões)
+- [x] ~~Acesso da equipe ao Open WebUI~~ — **Open WebUI dispensado (30/10)**: o agente OpenClaw é a interface de IA; equipe acessará por canal de mensagens do agente
+- [ ] Expandir o agente além da leitura (ações com aprovação humana, tokens de escrita mínimos e separados, registro de cada ação)
 - [ ] Coleta automática das configurações para este repositório
 
 ## Proxmox (host)
@@ -114,12 +115,11 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [x] Open WebUI público com HTTPS; Zabbix, NetBox e GLPI só para os IPs da empresa
 - [ ] SSH pela VPN e remover a regra pública da porta 22
 
-## IA (Ollama + Open WebUI)
+## IA (Ollama)
 
 - [x] Ollama em LXC não privilegiado com a GPU
-- [x] Open WebUI publicado com HTTPS
-- [ ] Modelo padrão e *system prompt* para o NOC
-- [ ] Contas da equipe e grupos de permissão
+- [x] ~~Open WebUI publicado com HTTPS~~ → desativado em 30/10 (CT 103 parado, fora do backup e do proxy; apagar na Consolidação)
+- [ ] Ajustar a RAM do CT 102 conforme o `ollama ps` (100% GPU → 8 GB)
 
 ## Consolidação (final do projeto)
 
