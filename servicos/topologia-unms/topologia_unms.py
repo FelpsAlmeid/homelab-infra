@@ -10,7 +10,8 @@ Uso:
        python3 topologia_unms.py coletar
   2) Ver os ramos (componentes) e escolher a raiz de cada um:
        python3 topologia_unms.py ramos                 # gera ramos.csv
-       -> preencher raizes.txt (nome ou IP do device de entrada de cada ramo, um por linha)
+       -> preencher pops.txt (nome do site do UNMS que é POP, um por linha): todo device nesses sites vira raiz
+       -> (opcional) raizes.txt: nome ou IP de device de entrada de ramo que não passa por POP
        (opcional) manter.txt: só ficam os nomes que casam com algum regex (padrões de infraestrutura)
        (opcional) ignorar.txt: um regex de nome por linha a descartar (bancada, teste)
   3) Gerar a planilha de revisão:
@@ -168,6 +169,14 @@ def ramos():
             sites = sorted({info[x]["site"] for x in c if info[x]["site"]})
             w.writerow([n, len(c), " | ".join(sites), " | ".join(sorted(f"{info[x]['nome']} [{info[x]['ip']}]" for x in c))])
     print(f"{len(comps)} ramos -> ramos.csv")
+    cont = defaultdict(int)
+    for c in comps:
+        if len(c) > 1:
+            for st in {info[x]["site"] for x in c if info[x]["site"]}:
+                cont[st] += 1
+    hubs = sorted(((q, st) for st, q in cont.items() if q > 1), reverse=True)
+    if hubs:
+        print("Sites presentes em vários ramos (prováveis POPs/torres-mãe): " + ", ".join(f"{st} ({q})" for q, st in hubs))
     print("Preencha raizes.txt com o device de entrada de cada ramo (o que liga no POP/BNG), um por linha.")
 
 
@@ -189,6 +198,14 @@ def arvore():
                 print(f"AVISO raiz '{nome}': {'não encontrada' if not ids else 'nome duplicado'}")
                 continue
             raizes.append(ids[0])
+    pops = set()
+    if os.path.exists("pops.txt"):                          # nomes dos sites do UNMS que são POP
+        pops = {l.strip().lower() for l in open("pops.txt", encoding="utf-8") if l.strip() and not l.startswith("#")}
+        achados = {x["site"].strip().lower() for x in info.values()}
+        for p in sorted(pops - achados):
+            print(f"AVISO pops.txt: site '{p}' não encontrado")
+        raizes += sorted((d for d, x in info.items() if x["site"].strip().lower() in pops and d not in raizes),
+                         key=lambda d: (info[d]["site"], info[d]["nome"]))
     pai, prof, origem, ramo = {}, {}, {}, {}
     for n, r in enumerate(raizes, 1):
         if r in prof:
@@ -237,7 +254,8 @@ def arvore():
             x, p = info[d], pai.get(d)
             obs = []
             if d in raizes:
-                obs.append("RAIZ DO RAMO - informar o uplink no POP/BNG")
+                obs.append("RAIZ (device no POP) - informar o uplink no BNG/switch do POP" if x["site"].strip().lower() in pops
+                           else "RAIZ DO RAMO - informar o uplink no POP/BNG")
             if d not in prof:
                 obs.append("SEM RAMO - definir raiz ou uplink manual")
             if not x["ip"]:
