@@ -10,7 +10,7 @@ Uso:
        python3 topologia_unms.py coletar
   2) Ver os ramos (componentes) e escolher a raiz de cada um:
        python3 topologia_unms.py ramos                 # gera ramos.csv
-       -> preencher pops.txt (nome do site do UNMS que é POP, um por linha): todo device nesses sites vira raiz
+       -> preencher pops.txt (sites de entrada: POPs e sites que recebem link de fora do UNMS, um por linha): todo device nesses sites vira raiz
        -> (opcional) raizes.txt: nome ou IP de device de entrada de ramo que não passa por POP
        (opcional) manter.txt: só ficam os nomes que casam com algum regex (padrões de infraestrutura)
        (opcional) ignorar.txt: um regex de nome por linha a descartar (bancada, teste)
@@ -209,7 +209,8 @@ def arvore():
     pai, prof, origem, ramo = {}, {}, {}, {}
     for n, r in enumerate(raizes, 1):
         if r in prof:
-            print(f"AVISO raiz '{info[r]['nome']}' já está no ramo de outra raiz")
+            if info[r]["site"].strip().lower() not in pops:
+                print(f"AVISO raiz '{info[r]['nome']}' já está no ramo de outra raiz")
             continue
         prof[r], ramo[r], fila = 0, n, deque([r])
         while fila:
@@ -254,7 +255,7 @@ def arvore():
             x, p = info[d], pai.get(d)
             obs = []
             if d in raizes:
-                obs.append("RAIZ (device no POP) - informar o uplink no BNG/switch do POP" if x["site"].strip().lower() in pops
+                obs.append("RAIZ (site de entrada) - informar o uplink à mão (BNG/switch do POP ou enlace de origem)" if x["site"].strip().lower() in pops
                            else "RAIZ DO RAMO - informar o uplink no POP/BNG")
             if d not in prof:
                 obs.append("SEM RAMO - definir raiz ou uplink manual")
