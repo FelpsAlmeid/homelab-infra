@@ -38,10 +38,11 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [x] Serviços de HA desativados (nó único)
 - [x] TFA (TOTP) e chaves de recuperação no usuário administrador
 - [x] Firewall do host: 8006/22 só para `redes-admin` (rede local automática do Proxmox contida na gerência)
-- [x] Jobs de backup: diário (5 CTs) e semanal (Ollama) no HD, com retenção e repetir perdidos
+- [x] Jobs de backup: diário (5 CTs + VM 107 OpenClaw) e semanal (Ollama) no HD, com retenção e repetir perdidos
 - [x] Cópia semanal criptografada para o Google Drive (conta dedicada, `drive.file` + `crypt`)
-- [ ] Instalar a versão nova do `backup-offsite.sh` (envio único) e validar uma execução completa
-- [ ] Teste de restauração a partir do Drive
+- [x] Versão nova do `backup-offsite.sh` (envio único, CTs + VMs) instalada e validada: 23,8 GiB a ~16,7 MiB/s (29/10)
+- [x] Teste de restauração a partir do Drive: CT 103 baixado, `zstd -t` ok, restaurado como 903 sem rede, Open WebUI subiu (30/10)
+- [ ] Repetir o teste de restauração periodicamente (ex.: a cada 3 meses, alternando o CT)
 - [x] Limpeza do HD antigo (backups e ISOs do servidor anterior)
 
 ## Rede dos containers (saída para a internet)

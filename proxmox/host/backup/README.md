@@ -51,4 +51,16 @@ pct restore <ID> /mnt/hd-antigo/dump/vzdump-lxc-<ID>-....tar.zst --storage <stor
 ```
 Em um servidor novo: instalar o rclone, recriar `gdrive-vms` (mesma conta) e `gdrive-vms-crypt` com **a mesma senha e salt**.
 
-> Teste de restauração periódico: restaurar um CT com outro ID (`--unique 1`) e conferir o serviço.
+## Teste de restauração (validado em 30/10/2026)
+
+```bash
+mkdir -p /mnt/hd-antigo/restore-test          # fora da pasta dump do vzdump
+rclone copy gdrive-vms-crypt:semanal/<SEMANA>/ct-103/ /mnt/hd-antigo/restore-test/ --include "*.tar.zst" -P
+F=$(ls -1t /mnt/hd-antigo/restore-test/*.tar.zst | head -n1); zstd -t "$F"
+pct restore 903 "$F" --storage local-lvm --unique 1 --start 0
+pct set 903 --delete net0 --onboot 0          # sem rede: não disputa o IP do original
+pct start 903 && pct exec 903 -- systemctl list-units --type=service --state=running --no-pager
+pct stop 903 && pct destroy 903 --purge && rm -rf /mnt/hd-antigo/restore-test
+```
+
+Resultado: arquivo descriptografado e íntegro, CT restaurado com `open-webui.service` em execução. Repetir periodicamente alternando o CT.

@@ -58,3 +58,4 @@ Problemas reais encontrados na montagem e como foram resolvidos.
 | Shell | `Permission denied` ao "abrir" arquivo | Digitar o caminho tenta **executar** o arquivo | `nano <arquivo>` ou `code <arquivo>` |
 | Zabbix → GLPI | `Parameter "glpi_app_token" is an unresolved macro` | Macro global `{$GLPI.APP_TOKEN}` apagada ao editar as macros SNMP | Recriar como texto secreto; `zabbix_server -R config_cache_reload`; conferir as duas `{$GLPI.*}` após editar macros globais |
 | GLPI API (agente) | "No tickets found" com chamado aberto | Usuário da API fora do grupo NOC; o perfil só mostra chamados do grupo | Incluir o usuário no grupo; testar com um chamado real, não com lista vazia |
+| Comandos com placeholder | `-bash: <nome>: No such file or directory` | `<...>` colado literalmente: o shell lê `<` como redirecionamento | Gerar o valor por comando (`F=$(ls -1t ... | head -n1)`) em vez de editar o placeholder |
