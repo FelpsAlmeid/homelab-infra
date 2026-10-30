@@ -10,11 +10,12 @@ Uso:
        python3 topologia_unms.py coletar
   2) Ver os ramos (componentes) e escolher a raiz de cada um:
        python3 topologia_unms.py ramos                 # gera ramos.csv
-       -> preencher raizes.txt (um nome de device por linha: o rádio que liga no POP)
+       -> preencher raizes.txt (nome ou IP do device de entrada de cada ramo, um por linha)
+       (opcional) ignorar.txt: um regex de nome por linha (bancada, teste, CPE fora de site de cliente)
   3) Gerar a planilha de revisão:
        python3 topologia_unms.py arvore                # gera topologia-revisao.csv
 """
-import csv, json, os, ssl, sys, urllib.request
+import csv, json, os, re, ssl, sys, urllib.request
 from collections import defaultdict, deque
 
 F_DEV, F_LNK = "unms-devices.json", "unms-data-links.json"
@@ -96,6 +97,18 @@ def carregar():
                 v.pop(d, None)
         if fora:
             print(f"{len(fora)} devices em sites de cliente ignorados (INCLUIR_CLIENTES=1 para incluir)")
+    pad = []
+    if os.path.exists("ignorar.txt"):                        # um regex por linha (sem diferenciar maiúsculas)
+        pad = [re.compile(l.strip(), re.I) for l in open("ignorar.txt", encoding="utf-8") if l.strip() and not l.startswith("#")]
+    fora = {d for d, x in info.items() if any(p.search(x["nome"]) for p in pad)}
+    for d in fora:
+        info.pop(d)
+        viz.pop(d, None)
+    for v in viz.values():
+        for d in fora:
+            v.pop(d, None)
+    if fora:
+        print(f"{len(fora)} devices ignorados por ignorar.txt")
     for did in info:
         viz.setdefault(did, {})
     return info, viz
@@ -122,12 +135,20 @@ def componentes(viz):
 def ramos():
     info, viz = carregar()
     comps = sorted(componentes(viz), key=len, reverse=True)
+    soltos = sum(1 for c in comps if len(c) == 1)
+    print(f"{len(info)} devices · {len(comps) - soltos} ramos com vínculo · {soltos} soltos (sem data link)")
+    nomes = defaultdict(int)
+    for x in info.values():
+        nomes[x["nome"].strip().lower()] += 1
+    dup = sorted(n for n, q in nomes.items() if q > 1)
+    if dup:
+        print(f"Nomes repetidos ({len(dup)}): " + ", ".join(dup[:15]) + (" ..." if len(dup) > 15 else ""))
     with open("ramos.csv", "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh, delimiter=";")
-        w.writerow(["ramo", "qtd_devices", "sites", "devices"])
+        w.writerow(["ramo", "qtd_devices", "sites", "devices (nome [ip])"])
         for n, c in enumerate(comps, 1):
             sites = sorted({info[x]["site"] for x in c if info[x]["site"]})
-            w.writerow([n, len(c), " | ".join(sites), " | ".join(sorted(info[x]["nome"] for x in c))])
+            w.writerow([n, len(c), " | ".join(sites), " | ".join(sorted(f"{info[x]['nome']} [{info[x]['ip']}]" for x in c))])
     print(f"{len(comps)} ramos -> ramos.csv")
     print("Preencha raizes.txt com o device de entrada de cada ramo (o que liga no POP/BNG), um por linha.")
 
@@ -137,6 +158,8 @@ def arvore():
     por_nome = defaultdict(list)
     for did, x in info.items():
         por_nome[x["nome"].strip().lower()].append(did)
+        if x["ip"]:
+            por_nome[x["ip"]].append(did)
     raizes = []
     if os.path.exists("raizes.txt"):
         for linha in open("raizes.txt", encoding="utf-8"):

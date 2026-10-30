@@ -16,7 +16,8 @@ export UNMS_URL=https://<unms>/nms/api/v2.1
 read -rs UNMS_TOKEN && export UNMS_TOKEN     # colar o token (usuário Guest) e Enter
 python3 topologia_unms.py coletar           # unms-devices.json, unms-data-links.json
 python3 topologia_unms.py ramos             # ramos.csv
-nano raizes.txt                             # um device de entrada por ramo (o que liga no POP/BNG)
+nano ignorar.txt                            # (opcional) regex de nomes a descartar: bancada, teste, CPE
+nano raizes.txt                             # nome ou IP do device de entrada de cada ramo
 python3 topologia_unms.py arvore            # topologia-revisao.csv
 ```
 
