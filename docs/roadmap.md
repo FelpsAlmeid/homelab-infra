@@ -112,7 +112,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 
 - [x] Instância ARM, IP reservado, firewall em duas camadas
 - [x] Túnel WireGuard dedicado até o MikroTik; painel do NPM só pela VPN
-- [x] Open WebUI público com HTTPS; Zabbix, NetBox e GLPI só para os IPs da empresa
+- [x] Zabbix, NetBox e GLPI só para os IPs da empresa (Open WebUI público até 30/10 — host do proxy desativado)
 - [ ] SSH pela VPN e remover a regra pública da porta 22
 
 ## IA (Ollama)
@@ -137,7 +137,7 @@ Rodada de testes de segurança e de uso no dia a dia, antes de considerar o proj
 **Uso no dia a dia**
 - [ ] Rotina do NOC usando os sistemas por uma semana e anotar atritos
 - [ ] Alertas: ruído, falsos positivos, chamados duplicados
-- [ ] Painéis e acessos da equipe (Open WebUI, Grafana) com contas próprias
+- [ ] Acessos da equipe (canal do agente, Grafana) com contas próprias
 - [ ] Documentação final revisada (README, roadmap, segundo cérebro)
 
 ## Próximo passo
