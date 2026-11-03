@@ -19,7 +19,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
   - [x] GLPI somente leitura (só chamados do grupo NOC)
   - [x] Teste com chamado real (Zabbix → GLPI → agente): alerta ICMP abriu o chamado #4 e o agente o encontrou
   - [ ] Primeiro caso de uso N2: resumir problemas ativos do Zabbix e chamados abertos no GLPI
-  - [ ] Mostrar o nome do host nas respostas do Zabbix — regra aplicada no AGENTS.md; **validar no próximo problema ativo**
+  - [x] Nome do host nas respostas do Zabbix (validado em 03/11 com host de teste: nome + chamado do GLPI)
   - [x] Snapshot `integracoes-funcionando`
   - [x] Painel pela VPN sem túnel SSH (03/11): Caddy HTTPS na VM, gateway ainda em loopback, `trustedProxies` + `allowedOrigins`, 443 liberada só para o notebook
   - [ ] Apagar snapshots antigos da VM (thin pool `local-lvm` superalocado)
