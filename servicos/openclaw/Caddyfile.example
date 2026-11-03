@@ -1,0 +1,16 @@
+# /etc/caddy/Caddyfile — painel do OpenClaw por HTTPS dentro da própria VM
+# O gateway continua em 127.0.0.1:18789; o Caddy escuta só no IP da VM.
+# Firewall do Proxmox libera a 443 apenas para o IP do notebook na VPN.
+{
+	auto_https disable_redirects   # não abre a porta 80
+}
+
+https://<ip-da-vm> {
+	bind <ip-da-vm>
+	tls internal                   # CA local do Caddy (importar o root.crt no notebook)
+	reverse_proxy 127.0.0.1:18789 {
+		# sobrescrever (não acrescentar) o cabeçalho vindo do cliente
+		header_up X-Forwarded-For {remote_host}
+		header_up -X-Real-IP
+	}
+}

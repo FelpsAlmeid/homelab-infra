@@ -21,6 +21,8 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
   - [ ] Primeiro caso de uso N2: resumir problemas ativos do Zabbix e chamados abertos no GLPI
   - [ ] Mostrar o nome do host nas respostas do Zabbix — regra aplicada no AGENTS.md; **validar no próximo problema ativo**
   - [x] Snapshot `integracoes-funcionando`
+  - [x] Painel pela VPN sem túnel SSH (03/11): Caddy HTTPS na VM, gateway ainda em loopback, `trustedProxies` + `allowedOrigins`, 443 liberada só para o notebook
+  - [ ] Apagar snapshots antigos da VM (thin pool `local-lvm` superalocado)
 - [x] ~~Acesso da equipe ao Open WebUI~~ — **Open WebUI dispensado (30/10)**: o agente OpenClaw é a interface de IA; equipe acessará por canal de mensagens do agente
 - [ ] Expandir o agente além da leitura (ações com aprovação humana, tokens de escrita mínimos e separados, registro de cada ação)
 - [ ] Coleta automática das configurações para este repositório

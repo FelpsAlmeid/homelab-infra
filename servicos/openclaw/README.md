@@ -7,10 +7,10 @@ Agente [OpenClaw](https://openclaw.ai) (2026.10.x) usando o modelo local do Olla
 | Camada | Controle |
 |---|---|
 | VM própria | Kernel separado dos containers; snapshot antes de cada mudança |
-| Firewall do Proxmox | Entrada só SSH da gerência; **saída fechada** (`policy_out: DROP`), liberada destino a destino |
+| Firewall do Proxmox | Entrada só SSH da gerência e 443 do notebook na VPN; **saída fechada** (`policy_out: DROP`), liberada destino a destino |
 | Usuário | `openclaw` sem sudo |
 | Sandbox | Docker **rootless** (containers sem root real e sem acesso ao loopback da VM) |
-| Gateway | Só em `127.0.0.1:18789`; acesso por túnel SSH |
+| Gateway | Só em `127.0.0.1:18789`; painel por HTTPS (Caddy na própria VM) apenas do notebook na VPN |
 | Segredos | Token do gateway fora do `openclaw.json` (SecretRef `env` + `EnvironmentFile` 600) |
 | Skills | Nenhuma da galeria pública sem revisão |
 
@@ -201,13 +201,43 @@ Papel de N2 do NOC em [`workspace/`](workspace/README.md) (SOUL/AGENTS/IDENTITY)
 
 ## Painel web
 
-O gateway escuta só em loopback; o acesso é por túnel SSH a partir da rede de administração:
+O painel mostra as chamadas de ferramenta de cada resposta — útil para auditar o que o agente consultou. Não publicar no proxy: é a interface de administração do agente.
+
+### Acesso pela VPN sem túnel SSH (HTTPS com Caddy na VM)
+
+```mermaid
+flowchart LR
+    NB["Notebook (VPN WireGuard)"] --> FW["Firewall da VM<br/>443 só do notebook"]
+    FW --> CD["Caddy<br/>&lt;ip-da-vm&gt;:443 · tls internal"]
+    CD --> GW["Gateway OpenClaw<br/>127.0.0.1:18789"]
+```
+
+**Por que um proxy na VM, e não `bind` no IP:** nesta versão o painel até funciona em HTTP puro (o pareamento usa Ed25519 em JS), mas o **token do gateway trafega em texto** e algumas abas exigem HTTPS. Com o Caddy o gateway segue em loopback — o sandbox rootless continua sem alcançá-lo — e o token só passa cifrado.
+
+1. Snapshot da VM.
+2. Caddy (pacote do Ubuntu) com [`Caddyfile.example`](Caddyfile.example); validar com `caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile` e `ss -tlnp | grep caddy`.
+3. Gateway (usuário `openclaw`), mantendo `auth.mode: token`:
+   ```bash
+   openclaw config set gateway.trustedProxies '["127.0.0.1"]'
+   openclaw config set gateway.controlUi.allowedOrigins '["https://<ip-da-vm>"]'
+   systemctl --user restart openclaw-gateway
+   curl -sk https://<ip-da-vm>/ -o /dev/null -w '%{http_code}\n'   # 403 antes do trustedProxies, 200 depois
+   ```
+4. Firewall: regra IN 443 só do IP do notebook na VPN ([`vm.fw.example`](vm.fw.example)).
+5. Notebook: importar a CA do Caddy (`/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt`, pública) depois de conferir o SHA-256 dos dois lados:
+   ```powershell
+   (Get-PfxCertificate .\caddy-root.crt).GetCertHashString('SHA256')
+   Import-Certificate -FilePath .\caddy-root.crt -CertStoreLocation Cert:\CurrentUser\Root
+   ```
+6. Primeiro acesso: token do gateway → aprovar o navegador na VM (`openclaw devices list` e o `openclaw devices approve ...` exibido na página).
+
+> Mesmo IP/hostname = mesma fronteira de credencial (documentação do OpenClaw): não hospedar outro serviço no IP do painel.
+
+Alternativa sem Caddy (túnel SSH a partir da rede de administração):
 
 ```bash
 ssh -L 18789:127.0.0.1:18789 <usuario>@<ip-da-vm>   # depois: http://127.0.0.1:18789/
 ```
-
-O painel mostra as chamadas de ferramenta de cada resposta — útil para auditar o que o agente consultou. Não publicar no proxy: é a interface de administração do agente.
 
 ## Validação
 
@@ -216,4 +246,5 @@ Com o NAT do servidor removido por engano, o agente listou as três quedas reais
 **Ponta a ponta (29/10):** host de teste sem resposta a ICMP → problema Alta no Zabbix → webhook abriu o chamado #4 no GLPI (link no próprio problema) → o agente listou o problema, encontrou o chamado #4 e consultou o NetBox na mesma conversa.
 
 ## Próximos passos
-- NetBox e GLPI somente leitura
+- Primeiro caso de uso N2 (resumo de problemas ativos + chamados)
+- Canal de mensagens para a equipe

@@ -8,6 +8,7 @@ log_level_out: info
 
 [RULES]
 IN SSH(ACCEPT) -source +redes-admin -log nolog
+IN ACCEPT -source <IP_NOTEBOOK_VPN> -p tcp -dport 443 -log nolog   # painel via Caddy (só o notebook)
 IN Ping(ACCEPT) -source +redes-admin -log nolog
 OUT DNS(ACCEPT) -log nolog
 OUT NTP(ACCEPT) -log nolog

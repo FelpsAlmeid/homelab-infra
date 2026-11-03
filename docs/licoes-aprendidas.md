@@ -51,6 +51,7 @@ Problemas reais encontrados na montagem e como foram resolvidos.
 | Shell | `read -rsp "<token>" T` → "Not authorized" | O texto do `-p` é só o prompt; o `read` engoliu a linha seguinte colada | Rodar o `read` sozinho e colar o valor no prompt |
 | zabbix-mcp | `Missing required Zabbix URL` com `.env` na pasta | O `.env` não é lido do diretório de trabalho | Script que carrega o `.env` e faz `exec` do servidor |
 | OpenClaw + modelo local | Agente diz que "não tem ferramenta"; log `Unknown tool id: tool_search` | Busca de ferramentas automática para Ollama; modelo pequeno erra a chamada | `tools.toolSearch: false` e poucas ferramentas expostas |
+| OpenClaw atrás de proxy na mesma VM | Painel responde `403` (`proxy_attribution_required`) | Proxy em loopback não confiável: o gateway não atribui o `X-Forwarded-For` | `gateway.trustedProxies: ["127.0.0.1"]`, `controlUi.allowedOrigins` e o proxy sobrescrevendo o `X-Forwarded-For` |
 | OpenClaw | Modelo descreve ferramentas de shell que não tem | Alucinação sobre as próprias capacidades | Validar por config e log, nunca pela resposta |
 | NetBox (token) | "Item 2 na lista não validou" em IPs permitidos | Espaço depois da vírgula | `10.0.10.9/32,::ffff:10.0.10.9/128` sem espaço |
 | NetBox + agente | Permissão sem clientes, mas histórico liberado | O histórico de mudanças copia dados de qualquer objeto | Não liberar `Object change` nem o `get_changelogs` |

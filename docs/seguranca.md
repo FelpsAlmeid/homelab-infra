@@ -17,6 +17,7 @@
 | Nuvem → rede local | Túnel WireGuard dedicado; firewall do MikroTik libera só destino/porta publicados |
 | Rede local → containers | Firewall do Proxmox (fora do container, não é contornado pelo Docker) |
 | Painel do proxy | Escuta só em `127.0.0.1` e no IP do túnel; acesso pela VPN |
+| Painel do agente (OpenClaw) | Gateway em `127.0.0.1`; HTTPS por Caddy na própria VM, 443 liberada só para o notebook na VPN; token + pareamento do navegador |
 | Host | Secure Boot, root sem login remoto, IPv6 desativado, SSH só com chave |
 | Aplicações | Cadastro público desativado; contas criadas pelo administrador |
 
