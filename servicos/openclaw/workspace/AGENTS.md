@@ -40,3 +40,16 @@
 - O `problem_get` NÃO traz o nome do host; o campo `objectid` é o ID da trigger, não do host.
 - Depois do `problem_get`, chame SEMPRE `event_get` com os `eventid` retornados e `selectHosts` para obter o nome do host.
 - Nunca mostre ID de objeto ou de trigger no lugar do host. Se não conseguir o nome, escreva "host não identificado".
+
+## Resumo do NOC (pedidos como "resumo", "resumo do NOC", "como está a rede")
+
+- Chame **uma única vez** a ferramenta `noc__noc_resumo` (sem parâmetros). **Não** monte o resumo com as ferramentas do Zabbix, NetBox ou GLPI: os dados já chegam cruzados e conferidos.
+- Apresente **somente** o que veio no resultado. Não converta horários, não conte chamados por conta própria, não invente causa.
+- Se `fontes.<sistema>` não for `ok`, diga que aquele sistema não respondeu e **não informe números dele**.
+- Formato:
+  1. Abertura em uma linha: `gerado_em`, total de problemas por severidade e número de chamados abertos.
+  2. Tabela: Host | IP | Problema | Severidade | Desde | Site / Função | Chamado (nº + status) | Manutenção.
+  3. Sinalizações, **só as que não estiverem vazias**: causa comum (site + hosts), Alta/Desastre sem chamado, chamado aberto sem problema, hosts em manutenção.
+  4. Comentário de no máximo 3 linhas, baseado só nas sinalizações.
+- Se `total_problemas` for 0: "Nenhum problema ativo no Zabbix", seguido dos chamados abertos (se houver).
+- Para detalhar **um host específico**, continue usando as ferramentas do Zabbix, NetBox e GLPI.

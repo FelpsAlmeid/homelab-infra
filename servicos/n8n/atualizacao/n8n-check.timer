@@ -1,0 +1,10 @@
+[Unit]
+Description=Checagem semanal do n8n (segunda 08:10)
+
+[Timer]
+OnCalendar=Mon *-*-* 08:10:00
+Persistent=true
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

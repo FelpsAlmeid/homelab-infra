@@ -1,0 +1,51 @@
+# /opt/n8n/compose.yml — n8n atrás do Caddy (HTTPS interno). Versão SEMPRE fixa.
+# Segredos em /opt/n8n/.env (600): N8N_ENCRYPTION_KEY=<openssl rand -hex 32> (cópia no gerenciador de senhas)
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.46.4
+    container_name: n8n
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TZ: America/Fortaleza
+      GENERIC_TIMEZONE: America/Fortaleza
+      N8N_HOST: <ip-do-ct>
+      N8N_PROTOCOL: https
+      N8N_PORT: "5678"
+      N8N_PROXY_HOPS: "1"
+      N8N_EDITOR_BASE_URL: https://<ip-do-ct>/
+      WEBHOOK_URL: https://<ip-do-ct>/
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_TEMPLATES_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"   # sem internet de saída; versões checadas pelo host (atualizacao/)
+      N8N_PUBLIC_API_DISABLED: "true"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      NODES_EXCLUDE: '["n8n-nodes-base.executeCommand","n8n-nodes-base.ssh","n8n-nodes-base.localFileTrigger"]'
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: "168"   # 7 dias
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks: [interna]          # sem porta publicada: só o Caddy alcança
+
+  caddy:
+    image: caddy:2
+    container_name: n8n-caddy
+    restart: unless-stopped
+    depends_on: [n8n]
+    ports:
+      - "<ip-do-ct>:443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data         # CA interna (root.crt em /data/caddy/pki/authorities/local/)
+      - caddy_config:/config
+    networks: [interna]
+
+volumes:
+  n8n_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  interna:

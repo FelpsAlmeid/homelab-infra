@@ -1,0 +1,8 @@
+[Unit]
+Description=Checa versão e avisos de segurança do n8n (CT 108) e envia ao Zabbix
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/n8n-check

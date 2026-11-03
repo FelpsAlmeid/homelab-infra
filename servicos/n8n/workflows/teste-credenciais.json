@@ -1,0 +1,133 @@
+{
+  "name": "teste-credenciais",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Executar teste",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.10.6/api_jsonrpc.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"jsonrpc\":\"2.0\",\"method\":\"problem.get\",\"params\":{\"output\":[\"eventid\",\"name\",\"severity\"],\"sortfield\":[\"eventid\"],\"sortorder\":\"DESC\",\"limit\":5},\"id\":1}",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Zabbix - problem.get",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "url": "http://10.0.10.7:8080/api/dcim/devices/?limit=2&brief=1",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Accept", "value": "application/json" }]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "NetBox - devices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "url": "http://10.0.10.8:8080/apirest.php/initSession",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "GLPI - initSession",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "url": "http://10.0.10.8:8080/apirest.php/Ticket?range=0-9",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Session-Token", "value": "={{ $('GLPI - initSession').first().json.session_token }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "GLPI - Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 0],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "url": "http://10.0.10.8:8080/apirest.php/killSession",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Session-Token", "value": "={{ $('GLPI - initSession').first().json.session_token }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "GLPI - killSession",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 0],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "url": "http://10.0.10.4:11434/api/tags",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "name": "Ollama - tags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 0],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const z = $('Zabbix - problem.get').first().json;\nconst nb = $('NetBox - devices').first().json;\nconst ini = $('GLPI - initSession').first().json;\nconst tk = $('GLPI - Ticket').all().map(i => i.json);\nconst ol = $('Ollama - tags').first().json;\nreturn [{ json: {\n  zabbix_ok: Array.isArray(z.result),\n  zabbix_problemas: (z.result || []).map(p => `${p.eventid} sev${p.severity} ${p.name}`),\n  zabbix_erro: z.error || null,\n  netbox_ok: typeof nb.count === 'number',\n  netbox_total_devices: nb.count,\n  glpi_sessao_ok: !!ini.session_token,\n  glpi_chamados: tk.filter(t => t.id).map(t => `#${t.id} status ${t.status}`),\n  ollama_modelos: (ol.models || []).map(m => m.name)\n} }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "name": "Resumo do teste",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 0]
+    }
+  ],
+  "connections": {
+    "Executar teste": { "main": [[{ "node": "Zabbix - problem.get", "type": "main", "index": 0 }]] },
+    "Zabbix - problem.get": { "main": [[{ "node": "NetBox - devices", "type": "main", "index": 0 }]] },
+    "NetBox - devices": { "main": [[{ "node": "GLPI - initSession", "type": "main", "index": 0 }]] },
+    "GLPI - initSession": { "main": [[{ "node": "GLPI - Ticket", "type": "main", "index": 0 }]] },
+    "GLPI - Ticket": { "main": [[{ "node": "GLPI - killSession", "type": "main", "index": 0 }]] },
+    "GLPI - killSession": { "main": [[{ "node": "Ollama - tags", "type": "main", "index": 0 }]] },
+    "Ollama - tags": { "main": [[{ "node": "Resumo do teste", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}

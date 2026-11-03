@@ -4,7 +4,7 @@
 
 | Camada | O quê | Onde | Retenção |
 |---|---|---|---|
-| Diário (job do Proxmox, 02:30) | CTs 101, 103, 104, 105, 106 — modo snapshot | Disco separado do sistema (`hd-antigo`) | 7 diários · 4 semanais · 3 mensais |
+| Diário (job do Proxmox, 02:30) | CTs 101, 104, 105, 106, 108 (n8n) + VM 107 (OpenClaw) — modo snapshot (CT 103 fora desde 30/10) | Disco separado do sistema (`hd-antigo`) | 7 diários · 4 semanais · 3 mensais |
 | Semanal (job do Proxmox, dom 03:30) | CT 102 (Ollama, modelos re-baixáveis) | `hd-antigo` | 2 semanais |
 | Fora do PC (timer, dom 05:00) | Dump mais recente de cada CT + `.tar` da configuração do host | Google Drive, remote `crypt` | 4 semanas |
 

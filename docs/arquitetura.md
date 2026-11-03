@@ -20,6 +20,8 @@
 | 104 | Zabbix | LXC | SSD dedicado | Banco isolado do disco do sistema |
 | 105 | NetBox | LXC não privilegiado (Docker) | SSD dedicado | IPAM / inventário |
 | 106 | GLPI | LXC não privilegiado (Docker) | SSD dedicado | Chamados |
+| 107 | OpenClaw | **VM** | NVMe | Agente de IA (somente leitura) |
+| 108 | n8n | LXC não privilegiado (Docker) | SSD dedicado | Orquestração das consultas do agente; sem internet de saída |
 
 ## Decisões
 
@@ -35,7 +37,7 @@
 ```mermaid
 flowchart LR
     subgraph P["Proxmox VE"]
-      CT["CTs 101–106"] -->|"vzdump snapshot<br/>diário 02:30 · Ollama semanal"| HD[("HD de backup<br/>7 diários · 4 semanais · 3 mensais")]
+      CT["CTs 101, 104–106, 108 + VM 107"] -->|"vzdump snapshot<br/>diário 02:30 · Ollama semanal"| HD[("HD de backup<br/>7 diários · 4 semanais · 3 mensais")]
       CFG["Configuração do host<br/>/etc/pve, rede, GRUB"]
     end
     HD -->|"último dump de cada CT"| R["rclone crypt<br/>timer semanal (dom 05:00)"]

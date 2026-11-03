@@ -23,8 +23,10 @@ flowchart LR
       Z["CT 104 · Zabbix"]
       S["CT 101 · Samba"]
       A["VM 107 · OpenClaw (agente)"] -->|"API nativa"| L
+      A -->|"MCP"| N8["CT 108 · n8n (orquestração)"]
+      N8 -->|"leitura"| Z & NB & G
       HD[("HD de backup<br/>vzdump diário + semanal")]
-      S & L & W & Z & NB & G -.-> HD
+      S & L & Z & NB & G & N8 & A -.-> HD
     end
 
     HD -->|"rclone crypt · semanal"| GD[("Google Drive<br/>conta dedicada")]
@@ -39,7 +41,7 @@ Detalhes em [docs/arquitetura.md](docs/arquitetura.md).
 | [`proxmox/host`](proxmox/host) | Rede com VLANs, IPv6 desativado, driver NVIDIA com Secure Boot, SSD de dados e [backup](proxmox/host/backup) |
 | [`proxmox/lxc`](proxmox/lxc) | Configurações de referência dos containers |
 | [`proxmox/firewall`](proxmox/firewall) | IPSets e regras do firewall do Proxmox |
-| [`servicos/`](servicos) | Ollama, Open WebUI, Samba, NetBox, GLPI, Zabbix a sincronização NetBox → Zabbix e a integração Zabbix → GLPI |
+| [`servicos/`](servicos) | Ollama, Samba, NetBox, GLPI, Zabbix, OpenClaw, n8n, a sincronização NetBox → Zabbix e a integração Zabbix → GLPI |
 | [`oracle/`](oracle) | Proxy público: Nginx Proxy Manager, WireGuard, firewall da instância |
 | [`mikrotik/`](mikrotik) | Ponta local do túnel e regras de firewall |
 | [`docs/`](docs) | Arquitetura, segurança, lições aprendidas e roadmap |
@@ -54,7 +56,7 @@ Detalhes em [docs/arquitetura.md](docs/arquitetura.md).
 
 ## Stack
 
-Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · Open WebUI · NetBox · GLPI · Zabbix · Samba · WireGuard · Nginx Proxy Manager · Let's Encrypt · Oracle Cloud (ARM) · MikroTik RouterOS 7
+Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · OpenClaw · n8n · Open WebUI · NetBox · GLPI · Zabbix · Samba · WireGuard · Nginx Proxy Manager · Let's Encrypt · Oracle Cloud (ARM) · MikroTik RouterOS 7
 
 ## Status
 
@@ -74,6 +76,8 @@ Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · Open WebUI · NetBox · 
 | Backbone completo no monitoramento | 🔄 |
 | Agente de IA (OpenClaw) em VM isolada, com Zabbix, NetBox e GLPI somente leitura | ✅ |
 | Backup local + cópia criptografada fora do PC | ✅ |
+| n8n orquestrando o resumo do NOC para o agente (MCP, tokens próprios somente leitura) | ✅ |
+| Checagem semanal de versão/avisos do n8n no Zabbix | ✅ |
 
 Roadmap por sistema (Proxmox, Zabbix, NetBox, GLPI, integrações, proxy e IA) em [docs/roadmap.md](docs/roadmap.md).
 

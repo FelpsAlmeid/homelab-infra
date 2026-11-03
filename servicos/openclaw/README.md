@@ -11,7 +11,7 @@ Agente [OpenClaw](https://openclaw.ai) (2026.10.x) usando o modelo local do Olla
 | Usuário | `openclaw` sem sudo |
 | Sandbox | Docker **rootless** (containers sem root real e sem acesso ao loopback da VM) |
 | Gateway | Só em `127.0.0.1:18789`; painel por HTTPS (Caddy na própria VM) apenas do notebook na VPN |
-| Segredos | Token do gateway fora do `openclaw.json` (SecretRef `env` + `EnvironmentFile` 600) |
+| Segredos | Token do gateway fora do `openclaw.json` (SecretRef `env` + `EnvironmentFile` 600); tokens de MCP em `.env` 600 lidos por `run.sh` |
 | Skills | Nenhuma da galeria pública sem revisão |
 
 ## Firewall da VM — [`vm.fw.example`](vm.fw.example)
@@ -195,6 +195,51 @@ openclaw mcp add glpi --command ~/.config/glpi-mcp/run.sh --timeout 60
 
 > `npm audit` conta dependências de desenvolvimento; use `--omit=dev` para ver só o que roda. As falhas restantes estavam em transporte HTTP/OAuth, que o modo stdio não usa.
 
+## Resumo do NOC via n8n (MCP)
+
+Teste do primeiro caso de uso N2 ("resumo do NOC" com 2 problemas e 2 chamados): mesmo com etapas "obrigatórias" no `AGENTS.md`, o gemma4:12b pulou o GLPI, escreveu "0 chamados abertos" ao lado dos chamados reais, consultou o NetBox de um host só e errou o horário convertendo o epoch. **Um modelo local de 12B não segue com segurança uma cadeia de 5 ferramentas** — a orquestração foi para um workflow do [n8n](../n8n/README.md) e o agente recebe o resultado pronto numa ferramenta só.
+
+| Camada | Controle |
+|---|---|
+| n8n | Workflow `noc_resumo` com tokens **próprios** somente leitura; MCP Server Trigger com Bearer |
+| Ponte | stdio → [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) **instalado com versão fixa** (`npm install -g mcp-remote@<versão>`, não `npx` a cada execução) |
+| Segredo | Bearer num `.env` 600 lido pelo `run.sh` — **fora do `openclaw.json`** |
+| TLS | CA do Caddy do n8n via `NODE_EXTRA_CA_CERTS` (verificação ligada) |
+| OpenClaw | Filtro `include: noc_resumo` e `noc__*` em `tools.alsoAllow` e `tools.sandbox.tools.alsoAllow` |
+
+> **Por que stdio e não `openclaw mcp add --url --header`:** o header vai em texto para o `openclaw.json`, headers de MCP HTTP **não aceitam SecretRef** (a superfície documentada é só o `env` de servidores stdio) e o `openclaw secrets audit` **não detecta** esse caso — deu "clean" com o token no arquivo.
+
+```bash
+npm install -g "mcp-remote@$(npm view mcp-remote version)"
+mkdir -p ~/.config/n8n-mcp && chmod 700 ~/.config/n8n-mcp
+read -rsp "Token MCP n8n: " T; echo
+printf 'N8N_MCP_URL=https://<ip-n8n>/mcp/noc\nN8N_MCP_AUTH="Bearer %s"\n' "$T" > ~/.config/n8n-mcp/.env; unset T
+chmod 600 ~/.config/n8n-mcp/.env
+
+cat > ~/.config/n8n-mcp/run.sh << 'EOF'
+#!/bin/bash
+set -a; . /home/openclaw/.config/n8n-mcp/.env; set +a
+export NODE_EXTRA_CA_CERTS=/home/openclaw/.config/openclaw/n8n-caddy-root.crt
+exec /home/openclaw/.npm-global/bin/mcp-remote "$N8N_MCP_URL" \
+  --transport http-only --header "Authorization:${N8N_MCP_AUTH}"
+EOF
+chmod 700 ~/.config/n8n-mcp/run.sh      # "Authorization:${VAR}" sem espaço: o espaço fica dentro da variável
+
+openclaw mcp add noc --command ~/.config/n8n-mcp/run.sh --include noc_resumo --timeout 120 --connect-timeout 30
+```
+
+Conferir onde o token ficou **pelo valor**, não pela palavra "Bearer" (aparece em dezenas de arquivos da instalação):
+
+```bash
+read -rsp "Token: " T; echo; [ -n "$T" ] && grep -rlF "$T" ~/.openclaw ~/.config; unset T   # esperado: só o .env
+```
+
+> `grep -F ""` casa com **todos** os arquivos: se o `read` ficar vazio, a busca parece achar o token em tudo. Por isso o `[ -n "$T" ]`.
+
+Instrução no [`AGENTS.md`](workspace/AGENTS.md): chamar `noc__noc_resumo` **uma vez**, apresentar só o resultado e respeitar o campo `fontes`. Resultado: **1 chamada**, 24 s, dados exatos (antes: várias chamadas e dados errados).
+
+> **OpenClaw 2026.10.10:** `openclaw mcp probe` passou a exigir o gateway parado (`systemctl --user stop openclaw-gateway` → probe → `start`).
+
 ## Instruções do agente
 
 Papel de N2 do NOC em [`workspace/`](workspace/README.md) (SOUL/AGENTS/IDENTITY), com os testes de regressão.
@@ -246,5 +291,5 @@ Com o NAT do servidor removido por engano, o agente listou as três quedas reais
 **Ponta a ponta (29/10):** host de teste sem resposta a ICMP → problema Alta no Zabbix → webhook abriu o chamado #4 no GLPI (link no próprio problema) → o agente listou o problema, encontrou o chamado #4 e consultou o NetBox na mesma conversa.
 
 ## Próximos passos
-- Primeiro caso de uso N2 (resumo de problemas ativos + chamados)
+- ~~Primeiro caso de uso N2 (resumo de problemas ativos + chamados)~~ — feito via n8n (03/11)
 - Canal de mensagens para a equipe

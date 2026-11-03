@@ -18,12 +18,13 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
   - [x] NetBox somente leitura (MCP oficial, sem clientes e sem histórico)
   - [x] GLPI somente leitura (só chamados do grupo NOC)
   - [x] Teste com chamado real (Zabbix → GLPI → agente): alerta ICMP abriu o chamado #4 e o agente o encontrou
-  - [ ] Primeiro caso de uso N2: resumir problemas ativos do Zabbix e chamados abertos no GLPI
+  - [x] Primeiro caso de uso N2: resumir problemas ativos do Zabbix e chamados abertos no GLPI — **via workflow do n8n** (03/11): só com instruções o modelo pulava etapas e errava dados; com a ferramenta `noc_resumo`, 1 chamada e dados exatos
   - [x] Nome do host nas respostas do Zabbix (validado em 03/11 com host de teste: nome + chamado do GLPI)
   - [x] Snapshot `integracoes-funcionando`
   - [x] Painel pela VPN sem túnel SSH (03/11): Caddy HTTPS na VM, gateway ainda em loopback, `trustedProxies` + `allowedOrigins`, 443 liberada só para o notebook
   - [ ] Apagar snapshots antigos da VM (thin pool `local-lvm` superalocado)
 - [x] ~~Acesso da equipe ao Open WebUI~~ — **Open WebUI dispensado (30/10)**: o agente OpenClaw é a interface de IA; equipe acessará por canal de mensagens do agente
+- [x] **n8n como orquestrador** (CT 108, [guia](../servicos/n8n/README.md)): consultas determinísticas expostas ao agente por MCP, tokens próprios fora da VM do agente
 - [ ] Expandir o agente além da leitura (ações com aprovação humana, tokens de escrita mínimos e separados, registro de cada ação)
 - [ ] Coleta automática das configurações para este repositório
 
@@ -41,7 +42,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [x] Serviços de HA desativados (nó único)
 - [x] TFA (TOTP) e chaves de recuperação no usuário administrador
 - [x] Firewall do host: 8006/22 só para `redes-admin` (rede local automática do Proxmox contida na gerência)
-- [x] Jobs de backup: diário (5 CTs + VM 107 OpenClaw) e semanal (Ollama) no HD, com retenção e repetir perdidos
+- [x] Jobs de backup: diário (CTs 101, 104–106, 108 n8n + VM 107 OpenClaw) e semanal (Ollama) no HD, com retenção e repetir perdidos
 - [x] Cópia semanal criptografada para o Google Drive (conta dedicada, `drive.file` + `crypt`)
 - [x] Versão nova do `backup-offsite.sh` (envio único, CTs + VMs) instalada e validada: 23,8 GiB a ~16,7 MiB/s (29/10)
 - [x] Teste de restauração a partir do Drive: CT 103 baixado, `zstd -t` ok, restaurado como 903 sem rede, Open WebUI subiu (30/10)
@@ -123,6 +124,19 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [x] ~~Open WebUI publicado com HTTPS~~ → desativado em 30/10 (CT 103 parado, fora do backup e do proxy; apagar na Consolidação)
 - [x] RAM do CT 102 conferida (30/10): 8 GB, modelo 100% na GPU, uso real ~2 GB
 
+## n8n (orquestração do NOC)
+
+- [x] CT 108 não privilegiado com Docker, Caddy `tls internal`, firewall IN/OUT fechado (03/11)
+- [x] Saída para a internet só durante instalação/atualização
+- [x] Tokens próprios somente leitura (Zabbix, NetBox com IP, GLPI com cliente de API + grupo NOC), escrita negada nos três
+- [x] Workflow `noc_resumo` + `mcp_noc` (MCP Server Trigger com Bearer) ligados ao OpenClaw
+- [x] Backup diário + cópia semanal no Drive
+- [x] Checagem semanal de versão e avisos de segurança → Zabbix; script de atualização com snapshot
+- [ ] Tokens diretos de Zabbix/NetBox/GLPI na VM do agente: **mantidos por enquanto** (detalhe de host); revisar na Consolidação
+- [ ] Resumo em horário fixo + canal de mensagens da equipe (substitui o heartbeat do agente)
+- [ ] Segunda ferramenta: detalhe de um host
+- [ ] Fluxos de escrita com aprovação humana
+
 ## Consolidação (final do projeto)
 
 Rodada de testes de segurança e de uso no dia a dia, antes de considerar o projeto concluído.
@@ -146,6 +160,6 @@ Rodada de testes de segurança e de uso no dia a dia, antes de considerar o proj
 
 1. **Zabbix em escala (~450 dispositivos):** dependências/severidades, filtro de interfaces no LLD e importação CSV no NetBox (ICMP padrão e dimensionamento do CT 104 concluídos em 30/10).
 2. Política de saída dos containers (egress) — o Zabbix vai precisar alcançar as novas redes.
-3. Primeiro caso de uso N2 e validação do nome do host nas respostas (com os alertas reais).
+3. ~~Primeiro caso de uso N2~~ (feito via n8n, 03/11); próximo no agente: canal de mensagens + resumo em horário fixo pelo n8n.
 4. Grafana; depois serviços pessoais em VLAN separada.
 5. Consolidação: testes de segurança e de uso.

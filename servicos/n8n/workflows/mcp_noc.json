@@ -1,0 +1,63 @@
+{
+  "name": "mcp_noc",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "bearerAuth",
+        "path": "noc"
+      },
+      "id": "c3000000-0000-4000-8000-000000000001",
+      "name": "MCP Server - NOC",
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "c3000000-0000-4000-8000-0000000000aa"
+    },
+    {
+      "parameters": {
+        "name": "noc_resumo",
+        "description": "Resumo do NOC em tempo real (Zabbix + NetBox + GLPI), já cruzado e validado. Retorna JSON com: gerado_em; fontes (ok/falhou por sistema); total_problemas; por_severidade; chamados_abertos_glpi; problemas[] (host, ip, problema, severidade, desde em America/Fortaleza, reconhecido, em_manutencao, site, funcao, netbox, chamado {id, status, aberto_em}); sinalizacoes (causa_comum, alta_sem_chamado, chamados_sem_problema, em_manutencao). Use sempre que pedirem resumo, situação, problemas ativos ou chamados do NOC. Não precisa de parâmetros. Apresente os dados exatamente como vieram; se uma fonte vier 'falhou', diga isso em vez de supor valores.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        }
+      },
+      "id": "c3000000-0000-4000-8000-000000000002",
+      "name": "noc_resumo",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        220
+      ]
+    }
+  ],
+  "connections": {
+    "noc_resumo": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server - NOC",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Fortaleza"
+  },
+  "pinData": {}
+}

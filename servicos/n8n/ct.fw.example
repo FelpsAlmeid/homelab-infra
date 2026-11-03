@@ -1,0 +1,18 @@
+# /etc/pve/firewall/<id>.fw — n8n: entrada e saída fechadas, liberadas destino a destino
+[OPTIONS]
+enable: 1
+policy_in: DROP
+policy_out: DROP
+
+[RULES]
+IN ACCEPT -source +dc/redes-admin -p tcp -dport 443 -log nolog # UI do n8n (administração)
+IN ACCEPT -source <ip-vm-agente> -p tcp -dport 443 -log nolog # MCP - VM do OpenClaw
+OUT ACCEPT -dest <ip-zabbix> -p tcp -dport 80 -log nolog # Zabbix API
+OUT ACCEPT -dest <ip-netbox> -p tcp -dport 8080 -log nolog # NetBox API
+OUT ACCEPT -dest <ip-glpi> -p tcp -dport 8080 -log nolog # GLPI API
+OUT ACCEPT -dest <ip-ollama> -p tcp -dport 11434 -log nolog # Ollama
+OUT ACCEPT -p udp -dport 53 -log nolog # DNS
+OUT ACCEPT -p tcp -dport 53 -log nolog # DNS
+# Só durante instalação/atualização (o n8n-update.sh abre e fecha sozinho):
+# OUT ACCEPT -p tcp -dport 443 -log nolog # TEMP
+# OUT ACCEPT -p tcp -dport 80 -log nolog # TEMP

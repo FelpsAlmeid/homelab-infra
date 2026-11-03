@@ -1,0 +1,358 @@
+{
+  "name": "noc_resumo",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b2000000-0000-4000-8000-000000000001",
+      "name": "Teste manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "b2000000-0000-4000-8000-000000000002",
+      "name": "Chamado por outro workflow (MCP)",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://10.0.10.6/api_jsonrpc.php",
+        "options": {},
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"jsonrpc\": \"2.0\", \"method\": \"problem.get\", \"params\": {\"output\": [\"eventid\", \"objectid\", \"name\", \"severity\", \"clock\", \"acknowledged\", \"suppressed\"], \"selectTags\": \"extend\", \"recent\": false, \"sortfield\": [\"eventid\"], \"sortorder\": \"DESC\", \"limit\": 50}, \"id\": 1}"
+      },
+      "id": "b2000000-0000-4000-8000-000000000003",
+      "name": "Zabbix - problem.get",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lista de eventids dos problemas ([\"0\"] quando não há problema, para não virar consulta sem filtro)\nconst r = $json.result;\nif (!Array.isArray(r)) throw new Error('Zabbix problem.get falhou: ' + JSON.stringify($json.error || $json));\nconst ids = r.map(p => p.eventid);\nreturn [{ json: { eventids: ids.length ? ids : ['0'] } }];"
+      },
+      "id": "b2000000-0000-4000-8000-000000000004",
+      "name": "IDs dos eventos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://10.0.10.6/api_jsonrpc.php",
+        "options": {},
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jsonrpc: '2.0', method: 'event.get', params: { eventids: $json.eventids, output: ['eventid'], selectHosts: ['hostid','host','name'] }, id: 2 }) }}"
+      },
+      "id": "b2000000-0000-4000-8000-000000000005",
+      "name": "Zabbix - event.get",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// hostids e nomes para host.get e NetBox\nconst r = $json.result;\nif (!Array.isArray(r)) throw new Error('Zabbix event.get falhou: ' + JSON.stringify($json.error || $json));\nconst hostids = new Set(), nomes = new Set();\nfor (const e of r) for (const h of (e.hosts || [])) { hostids.add(h.hostid); nomes.add(h.host); nomes.add(h.name); }\nreturn [{ json: { hostids: hostids.size ? [...hostids] : ['0'], nomes: nomes.size ? [...nomes] : ['__nenhum__'] } }];"
+      },
+      "id": "b2000000-0000-4000-8000-000000000006",
+      "name": "IDs dos hosts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://10.0.10.6/api_jsonrpc.php",
+        "options": {},
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jsonrpc: '2.0', method: 'host.get', params: { hostids: $json.hostids, output: ['hostid','host','name','maintenance_status','status'], selectInterfaces: ['ip','main'] }, id: 3 }) }}"
+      },
+      "id": "b2000000-0000-4000-8000-000000000007",
+      "name": "Zabbix - host.get",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "url": "={{ 'http://10.0.10.7:8080/api/dcim/devices/?limit=500&' + $('IDs dos hosts').first().json.nomes.map(n => 'name=' + encodeURIComponent(n)).join('&') }}",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000008",
+      "name": "NetBox - devices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "http://10.0.10.8:8080/apirest.php/initSession",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth"
+      },
+      "id": "b2000000-0000-4000-8000-000000000009",
+      "name": "GLPI - initSession",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "http://10.0.10.8:8080/apirest.php/search/Ticket?criteria[0][field]=12&criteria[0][searchtype]=equals&criteria[0][value]=notold&forcedisplay[0]=2&forcedisplay[1]=1&forcedisplay[2]=12&forcedisplay[3]=15&forcedisplay[4]=7&range=0-199",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Session-Token",
+              "value": "={{ $('GLPI - initSession').first().json.session_token }}"
+            }
+          ]
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000010",
+      "name": "GLPI - chamados abertos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "http://10.0.10.8:8080/apirest.php/killSession",
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Session-Token",
+              "value": "={{ $('GLPI - initSession').first().json.session_token }}"
+            }
+          ]
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000011",
+      "name": "GLPI - killSession",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        0
+      ],
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Monta o resumo do NOC. Tudo calculado aqui: o agente só apresenta e comenta.\nconst TZ = 'America/Fortaleza';\nconst SEV = { 0: 'Não classificada', 1: 'Informação', 2: 'Atenção', 3: 'Média', 4: 'Alta', 5: 'Desastre' };\nconst ST = { 1: 'Novo', 2: 'Em atendimento (atribuído)', 3: 'Em atendimento (planejado)', 4: 'Pendente' };\nconst fmt = (d) => d.toLocaleString('pt-BR', { timeZone: TZ, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '');\n\nconst problemas = $('Zabbix - problem.get').first().json.result || [];\nconst eventos = $('Zabbix - event.get').first().json.result || [];\nconst hosts = $('Zabbix - host.get').first().json.result || [];\nconst nb = $('NetBox - devices').first().json;\nconst gl = $('GLPI - chamados abertos').first().json;\n\n// Índices\nconst hostDoEvento = {};\nfor (const e of eventos) hostDoEvento[e.eventid] = (e.hosts || [])[0] || null;\nconst hostPorId = {};\nfor (const h of hosts) hostPorId[h.hostid] = h;\nconst nbPorNome = {};\nconst netboxOk = Array.isArray(nb.results);\nfor (const d of (nb.results || [])) nbPorNome[String(d.name).toLowerCase()] = d;\n\n// Chamados abertos (status 1-4) vindos do GLPI\nconst glpiOk = Array.isArray(gl.data) || gl.totalcount === 0;\nconst chamados = (gl.data || []).map(r => ({\n  id: Number(r['2']), titulo: r['1'], status: Number(r['12']),\n  aberto_em: r['15'] ? `${r['15'].slice(8, 10)}/${r['15'].slice(5, 7)} ${r['15'].slice(11, 16)}` : null,\n  categoria: r['7'] || null,\n})).filter(c => c.status >= 1 && c.status <= 4);\nconst chamadoPorId = {};\nfor (const c of chamados) chamadoPorId[c.id] = c;\n\nconst usados = new Set();\nconst lista = problemas.map(p => {\n  const hb = hostDoEvento[p.eventid] || {};\n  const h = hostPorId[hb.hostid] || hb;\n  const d = nbPorNome[String(h.host || '').toLowerCase()] || nbPorNome[String(h.name || '').toLowerCase()];\n  const tag = (p.tags || []).find(t => t.tag === '__zbx_glpi_ticket_id');\n  const idTag = tag ? Number(tag.value) : null;\n  let chamado = null;\n  if (idTag && chamadoPorId[idTag]) {\n    const c = chamadoPorId[idTag]; usados.add(c.id);\n    chamado = { id: c.id, status: ST[c.status], aberto_em: c.aberto_em };\n  } else if (idTag) {\n    chamado = { id: idTag, status: 'não está aberto no GLPI (ou sem permissão de leitura)' };\n  }\n  const ip = (h.interfaces || []).find(i => i.main === '1')?.ip || null;\n  return {\n    evento: p.eventid,\n    host: h.name || h.host || 'desconhecido',\n    ip,\n    problema: p.name,\n    severidade: SEV[p.severity] || p.severity,\n    sev: Number(p.severity),\n    desde: fmt(new Date(Number(p.clock) * 1000)),\n    reconhecido: p.acknowledged === '1',\n    em_manutencao: p.suppressed === '1' || h.maintenance_status === '1',\n    site: d?.site?.name || null,\n    funcao: (d?.role || d?.device_role)?.name || null,\n    netbox: d ? 'cadastrado' : (netboxOk ? 'não cadastrado no NetBox' : 'NetBox indisponível'),\n    chamado,\n  };\n});\n\n// Sinalizações\nconst porSite = {};\nfor (const x of lista) if (x.site) (porSite[x.site] ||= new Set()).add(x.host);\nconst causa_comum = Object.entries(porSite).filter(([, s]) => s.size >= 2).map(([site, s]) => ({ site, hosts: [...s] }));\nconst alta_sem_chamado = lista.filter(x => x.sev >= 4 && !x.em_manutencao && !(x.chamado && x.chamado.status && !x.chamado.status.startsWith('não'))).map(x => x.host);\nconst chamados_sem_problema = chamados.filter(c => !usados.has(c.id) && /alerta de monitoramento/i.test(c.categoria || '')).map(c => ({ id: c.id, titulo: c.titulo, status: ST[c.status] }));\nconst em_manutencao = lista.filter(x => x.em_manutencao).map(x => x.host);\n\nconst total = {};\nfor (const x of lista) total[x.severidade] = (total[x.severidade] || 0) + 1;\n\nreturn [{ json: {\n  gerado_em: fmt(new Date()),\n  fontes: { zabbix: 'ok', netbox: netboxOk ? 'ok' : 'falhou', glpi: glpiOk ? 'ok' : ('falhou: ' + JSON.stringify(gl).slice(0, 200)) },\n  total_problemas: lista.length,\n  por_severidade: total,\n  chamados_abertos_glpi: chamados.length,\n  problemas: lista.map(({ sev, ...r }) => r),\n  sinalizacoes: { causa_comum, alta_sem_chamado, chamados_sem_problema, em_manutencao },\n} }];"
+      },
+      "id": "b2000000-0000-4000-8000-000000000012",
+      "name": "Montar resumo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2220,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Teste manual": {
+      "main": [
+        [
+          {
+            "node": "Zabbix - problem.get",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chamado por outro workflow (MCP)": {
+      "main": [
+        [
+          {
+            "node": "Zabbix - problem.get",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zabbix - problem.get": {
+      "main": [
+        [
+          {
+            "node": "IDs dos eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IDs dos eventos": {
+      "main": [
+        [
+          {
+            "node": "Zabbix - event.get",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zabbix - event.get": {
+      "main": [
+        [
+          {
+            "node": "IDs dos hosts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IDs dos hosts": {
+      "main": [
+        [
+          {
+            "node": "Zabbix - host.get",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zabbix - host.get": {
+      "main": [
+        [
+          {
+            "node": "NetBox - devices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NetBox - devices": {
+      "main": [
+        [
+          {
+            "node": "GLPI - initSession",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GLPI - initSession": {
+      "main": [
+        [
+          {
+            "node": "GLPI - chamados abertos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GLPI - chamados abertos": {
+      "main": [
+        [
+          {
+            "node": "GLPI - killSession",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GLPI - killSession": {
+      "main": [
+        [
+          {
+            "node": "Montar resumo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Fortaleza"
+  },
+  "pinData": {}
+}

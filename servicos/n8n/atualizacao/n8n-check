@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+"""n8n-check — compara a versão do n8n (CT 108) com a última estável e com os
+avisos de segurança do GitHub; envia o resultado ao Zabbix (trapper).
+
+Status: 0 atualizado · 1 versão nova · 2 versão em uso afetada por aviso · 3 falha
+Uso: n8n-check [--sem-zabbix]
+"""
+import json, re, socket, struct, subprocess, sys, urllib.request
+
+CT = "108"
+ZBX_SERVER = "10.0.10.6"
+ZBX_HOST = "Zabbix server"
+API = "https://api.github.com/repos/n8n-io/n8n"
+UA = {"User-Agent": "homelab-n8n-check", "Accept": "application/vnd.github+json"}
+
+
+def get(url):
+    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=20) as r:
+        return json.load(r)
+
+
+def ver(s):
+    m = re.search(r"(\d+)\.(\d+)\.(\d+)", s or "")
+    return tuple(int(x) for x in m.groups()) if m else None
+
+
+def _faixa_ok(v, faixa):
+    """Testa uma faixa completa, ex.: '>= 1.0.0, < 2.46.5'."""
+    partes = [p.strip() for p in (faixa or "").split(",") if p.strip()]
+    for parte in partes:
+        m = re.match(r"(>=|<=|>|<|=)?\s*(\S+)", parte)
+        op, alvo = (m.group(1) or "="), ver(m.group(2))
+        if alvo is None:
+            return False
+        if not {">=": v >= alvo, "<=": v <= alvo, ">": v > alvo, "<": v < alvo, "=": v == alvo}[op]:
+            return False
+    return bool(partes)
+
+
+def afetada(v, entradas):
+    """entradas = lista de vulnerabilities do aviso (só o pacote n8n).
+
+    O n8n publica uma faixa por linha de versão, quase sempre só com limite
+    superior ('< 2.46.1', '< 2.45.5', '< 3.0.1'). Lida isoladamente, '< 3.0.1'
+    marcaria toda a linha 2.x como afetada. Regra por linha:
+      1. existe correção na mesma major.minor -> afetada se v < essa correção;
+      2. senão, existe correção na mesma major <= v -> corrigida (veio antes);
+      3. senão, existe correção > v -> afetada; senão -> não afetada.
+    Faixas com limite inferior ('>= X, < Y') são testadas diretamente.
+    """
+    if any(">" in (e.get("vulnerable_version_range") or "") for e in entradas):
+        return any(_faixa_ok(v, e.get("vulnerable_version_range")) for e in entradas)
+    corr = [c for c in (ver(e.get("patched_versions")) for e in entradas) if c]
+    mesma_linha = [c for c in corr if c[:2] == v[:2]]
+    if mesma_linha:
+        return v < min(mesma_linha)
+    if any(c[0] == v[0] and c <= v for c in corr):
+        return False
+    return any(c > v for c in corr)
+
+
+def em_uso():
+    img = subprocess.run(["pct", "exec", CT, "--", "docker", "inspect", "n8n", "--format", "{{.Config.Image}}"],
+                         capture_output=True, text=True, timeout=60, check=True).stdout.strip()
+    v = ver(img.rsplit(":", 1)[-1])
+    if not v:
+        raise RuntimeError(f"tag sem versão: {img}")
+    return v
+
+
+def enviar(status, info):
+    """Protocolo trapper do Zabbix (o mesmo do zabbix_sender), sem pacote extra."""
+    if "--sem-zabbix" in sys.argv:
+        return
+    dados = [{"host": ZBX_HOST, "key": "n8n.update.info", "value": info},
+             {"host": ZBX_HOST, "key": "n8n.update.status", "value": str(status)}]
+    corpo = json.dumps({"request": "sender data", "data": dados}).encode()
+    with socket.create_connection((ZBX_SERVER, 10051), timeout=15) as s:
+        s.sendall(b"ZBXD\x01" + struct.pack("<Q", len(corpo)) + corpo)
+        resp = b""
+        while chunk := s.recv(4096):
+            resp += chunk
+    r = json.loads(resp[13:].decode())
+    print("zabbix:", r.get("info"))
+    if r.get("response") != "success" or "failed: 0" not in r.get("info", ""):
+        raise RuntimeError(r.get("info"))
+
+
+def main():
+    try:
+        atual = em_uso()
+        estavel = ver(get(f"{API}/releases/latest")["tag_name"])
+        avisos = get(f"{API}/security-advisories?per_page=30&sort=published&direction=desc")
+        afetam = []
+        for a in avisos:
+            ents = [e for e in (a.get("vulnerabilities") or []) if (e.get("package") or {}).get("name") == "n8n"]
+            if ents and afetada(atual, ents):
+                corr = sorted({e.get("patched_versions") for e in ents if e.get("patched_versions")})
+                afetam.append(f"{a.get('ghsa_id')} {a.get('severity')} (correções: {', '.join(corr)})")
+        fmt = lambda t: ".".join(map(str, t))
+        if afetam:
+            status = 2
+        elif estavel and estavel > atual:
+            status = 1
+        else:
+            status = 0
+        info = f"em uso {fmt(atual)} · estável {fmt(estavel)}"
+        info += (" · AFETADA: " + "; ".join(afetam)) if afetam else " · sem aviso que afete a versão em uso"
+    except Exception as e:  # noqa: BLE001
+        status, info = 3, f"falha na checagem: {e}"
+    print(f"status={status} {info}")
+    try:
+        enviar(status, info[:1000])
+    except Exception as e:  # noqa: BLE001
+        print(f"aviso: envio ao Zabbix falhou: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

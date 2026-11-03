@@ -1,0 +1,11 @@
+{
+	auto_https disable_redirects
+	default_sni <ip-do-ct>   # navegadores não mandam SNI para IP
+}
+
+https://<ip-do-ct> {
+	tls internal
+	reverse_proxy n8n:5678 {
+		flush_interval -1    # SSE/streaming do MCP Server Trigger
+	}
+}
