@@ -72,3 +72,6 @@ Problemas reais encontrados na montagem e como foram resolvidos.
 | OpenClaw MCP HTTP | Token em texto no `openclaw.json`; `secrets audit` "clean" | `--header` não aceita SecretRef e o audit não varre headers de MCP | stdio + `mcp-remote` com `.env` 600; conferir pelo **valor** do token |
 | Avisos de segurança do n8n | Versão estável atual aparecia afetada por 12 avisos | Uma faixa por linha de versão (`< 2.46.1`, `< 3.0.1`); a da linha 3.x, lida isolada, cobre a 2.x | Avaliar por linha (`major.minor`), não faixa a faixa |
 | OpenClaw 2026.10.10 | `mcp probe`: "requires exclusive offline state ownership" | O probe passou a exigir o gateway parado | `systemctl --user stop openclaw-gateway` → probe → `start` |
+| OpenClaw + plugin Discord do ClawHub | Canal sobe e cai: `does not provide an export named 'createAccountScopedBindingAdapter'` | Plugin uma versão atrás do núcleo (ClawHub ainda sem a versão nova) | Plugin oficial do npm na **mesma versão** do núcleo, com `--pin` |
+| OpenClaw `plugins uninstall` | Canal "não configurado" após reinstalar o plugin | O uninstall remove também `channels.<canal>` da configuração | Guardar o patch e reaplicar; preferir `install --force`/`update` |
+| OpenClaw + Discord | Liberação por cargo não funciona | Allowlist de cargos depende da **Server Members Intent** | Ligar a intent no Developer Portal |

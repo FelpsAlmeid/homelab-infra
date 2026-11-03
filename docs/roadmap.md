@@ -22,6 +22,9 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
   - [x] Nome do host nas respostas do Zabbix (validado em 03/11 com host de teste: nome + chamado do GLPI)
   - [x] Snapshot `integracoes-funcionando`
   - [x] Painel pela VPN sem túnel SSH (03/11): Caddy HTTPS na VM, gateway ainda em loopback, `trustedProxies` + `allowedOrigins`, 443 liberada só para o notebook
+  - [x] **Canal Discord da equipe** (03/11): plugin oficial na mesma versão do núcleo, só o canal do agente, só cargo NOC, só com menção, DM desligada, token como SecretRef; 15 → 5 plugins carregados ([guia](../servicos/openclaw/README.md#canal-discord-da-equipe), [servidor](../servicos/discord/README.md))
+  - [ ] Resumo em horário fixo no canal de resumo (agendamento do próprio agente + `noc_resumo`)
+  - [ ] Regras do canal compartilhado (sem credenciais/community, alerta de impacto em equipamento de núcleo) — validar em sessão nova
   - [ ] Apagar snapshots antigos da VM (thin pool `local-lvm` superalocado)
 - [x] ~~Acesso da equipe ao Open WebUI~~ — **Open WebUI dispensado (30/10)**: o agente OpenClaw é a interface de IA; equipe acessará por canal de mensagens do agente
 - [x] **n8n como orquestrador** (CT 108, [guia](../servicos/n8n/README.md)): consultas determinísticas expostas ao agente por MCP, tokens próprios fora da VM do agente
@@ -133,7 +136,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [x] Backup diário + cópia semanal no Drive
 - [x] Checagem semanal de versão e avisos de segurança → Zabbix; script de atualização com snapshot
 - [ ] Tokens diretos de Zabbix/NetBox/GLPI na VM do agente: **mantidos por enquanto** (detalhe de host); revisar na Consolidação
-- [ ] Resumo em horário fixo + canal de mensagens da equipe (substitui o heartbeat do agente)
+- [ ] Alertas de fibra e rádio nos canais do Discord (o n8n hoje não tem saída para a internet — decidir como liberar só o necessário)
 - [ ] Segunda ferramenta: detalhe de um host
 - [ ] Fluxos de escrita com aprovação humana
 
@@ -160,6 +163,6 @@ Rodada de testes de segurança e de uso no dia a dia, antes de considerar o proj
 
 1. **Zabbix em escala (~450 dispositivos):** dependências/severidades, filtro de interfaces no LLD e importação CSV no NetBox (ICMP padrão e dimensionamento do CT 104 concluídos em 30/10).
 2. Política de saída dos containers (egress) — o Zabbix vai precisar alcançar as novas redes.
-3. ~~Primeiro caso de uso N2~~ (feito via n8n, 03/11); próximo no agente: canal de mensagens + resumo em horário fixo pelo n8n.
+3. ~~Primeiro caso de uso N2~~ (feito via n8n, 03/11) · ~~canal Discord~~ (03/11); próximo no agente: resumo em horário fixo no canal e alertas do n8n no Discord.
 4. Grafana; depois serviços pessoais em VLAN separada.
 5. Consolidação: testes de segurança e de uso.

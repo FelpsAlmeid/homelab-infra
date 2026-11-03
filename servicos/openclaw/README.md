@@ -284,6 +284,58 @@ Alternativa sem Caddy (túnel SSH a partir da rede de administração):
 ssh -L 18789:127.0.0.1:18789 <usuario>@<ip-da-vm>   # depois: http://127.0.0.1:18789/
 ```
 
+## Canal Discord da equipe
+
+O agente responde no servidor da equipe, **só num canal**, **só a quem tem o cargo do NOC** e **só quando mencionado**. Mensagens diretas desligadas. A estrutura do servidor foi criada com os scripts de [`servicos/discord/`](../discord/README.md).
+
+**Developer Portal (bot do agente):** Public Bot desligado · **Message Content Intent** e **Server Members Intent** ligadas (a segunda é obrigatória para liberar por cargo) · convite com `bot` + `applications.commands` e só View Channels, Send Messages, Send Messages in Threads, Read Message History, Embed Links e Add Reactions · cargo próprio no servidor que só enxerga os canais do agente.
+
+**Plugin:** o canal é o plugin oficial `@openclaw/discord`, com a **mesma versão do OpenClaw**. O ClawHub estava uma versão atrás (2026.10.9 contra o núcleo 2026.10.10) e o canal caía com `does not provide an export named ...`; o npm já tinha a versão certa:
+
+```bash
+npm view @openclaw/discord@<versao> maintainers repository.url   # conferir: github.com/openclaw/openclaw
+openclaw plugins install @openclaw/discord@<versao> --pin
+openclaw plugins enable discord          # instala desativado
+```
+
+> `openclaw plugins uninstall discord` **apaga também o bloco `channels.discord`** da configuração. Guarde o patch antes de trocar a versão.
+
+**Token fora do `openclaw.json`** (mesmo padrão do gateway):
+
+```bash
+read -rsp "Token Discord: " T; echo     # sozinho; colar no prompt
+printf 'DISCORD_BOT_TOKEN=%s\n' "$T" > ~/.config/openclaw/discord.env; unset T; chmod 600 ~/.config/openclaw/discord.env
+printf '[Service]\nEnvironmentFile=%%h/.config/openclaw/discord.env\n' > ~/.config/systemd/user/openclaw-gateway.service.d/discord.conf
+systemctl --user daemon-reload
+```
+
+**Configuração** (`openclaw config patch --file discord.patch.json5 --dry-run`, depois sem `--dry-run`):
+
+```json5
+{
+  channels: { discord: {
+    enabled: true,
+    token: { source: "env", provider: "default", id: "DISCORD_BOT_TOKEN" },
+    intents: { messageContent: true },
+    dmPolicy: "disabled",            // sem conversa privada
+    groupPolicy: "allowlist",
+    configWrites: false,             // ninguém altera a config pelo Discord
+    commands: { native: false },     // sem comandos / do OpenClaw
+    guilds: { "<id-do-servidor>": {
+      requireMention: true, ignoreOtherMentions: true,
+      roles: ["<id-do-cargo-NOC>"],
+      channels: { "<id-do-canal-do-agente>": { enabled: true } },
+    } },
+  } },
+}
+```
+
+**Menos superfície com vários usuários:** a skill `discord` do plugin desligada (`skills.entries.discord.enabled false`, a resposta no canal não depende dela) e todos os plugins sem uso desativados (`openclaw plugins disable ...` — provedores de modelo externos, voz, `cua-computer`, `file-transfer`, `linux-node`, `github`, `browser` etc.). O gateway passou de 15 para 5 plugins carregados: `canvas`, `device-pair`, `discord`, `memory-core`, `ollama`.
+
+`security audit`: o aviso `multi_user_heuristic` é esperado com o canal; as medidas que ele pede já estão aplicadas (sandbox `all`, `fs.workspaceOnly`, shell/arquivos/web negados, só tokens somente leitura).
+
+Validação: `openclaw channels status --probe` → `running, connected`; resumo pelo canal com 1 chamada ao `noc_resumo`; mensagem sem menção ignorada.
+
 ## Validação
 
 Com o NAT do servidor removido por engano, o agente listou as três quedas reais por ICMP; após a correção, uma nova pergunta consultou o Zabbix de novo e confirmou a normalização.
@@ -291,5 +343,7 @@ Com o NAT do servidor removido por engano, o agente listou as três quedas reais
 **Ponta a ponta (29/10):** host de teste sem resposta a ICMP → problema Alta no Zabbix → webhook abriu o chamado #4 no GLPI (link no próprio problema) → o agente listou o problema, encontrou o chamado #4 e consultou o NetBox na mesma conversa.
 
 ## Próximos passos
+- Resumo em horário fixo publicado pelo próprio agente no canal de resumo
+- Alertas do n8n (fibra/rádio) nos canais de alerta — decidir a saída do n8n para a internet
 - ~~Primeiro caso de uso N2 (resumo de problemas ativos + chamados)~~ — feito via n8n (03/11)
 - Canal de mensagens para a equipe
