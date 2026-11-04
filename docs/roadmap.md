@@ -25,7 +25,9 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
   - [x] **Canal Discord da equipe** (03/11): plugin oficial na mesma versão do núcleo, só o canal do agente, só cargo NOC, só com menção, DM desligada, token como SecretRef; 15 → 5 plugins carregados ([guia](../servicos/openclaw/README.md#canal-discord-da-equipe), [servidor](../servicos/discord/README.md))
   - [ ] Resumo em horário fixo no canal de resumo (agendamento do próprio agente + `noc_resumo`)
   - [ ] Regras do canal compartilhado (sem credenciais/community, alerta de impacto em equipamento de núcleo) — validar em sessão nova
-  - [ ] Apagar snapshots antigos da VM (thin pool `local-lvm` superalocado)
+  - [ ] Apagar snapshots antigos da VM (thin pool `local-lvm` superalocado), incluindo o de antes do MCP do n8n
+  - [ ] Limpeza pós-MCP do n8n: drop-in com `NODE_EXTRA_CA_CERTS` e linha do `.bashrc` (o `run.sh` já define a CA) e regra de saída redundante no firewall da VM
+  - [ ] Revisar os avisos do update 2026.10.10 (`openclaw update cleanup --dry-run`, busca de memória sem provider) sem rodar `doctor --fix`
 - [x] ~~Acesso da equipe ao Open WebUI~~ — **Open WebUI dispensado (30/10)**: o agente OpenClaw é a interface de IA; equipe acessará por canal de mensagens do agente
 - [x] **n8n como orquestrador** (CT 108, [guia](../servicos/n8n/README.md)): consultas determinísticas expostas ao agente por MCP, tokens próprios fora da VM do agente
 - [ ] Expandir o agente além da leitura (ações com aprovação humana, tokens de escrita mínimos e separados, registro de cada ação)
@@ -150,6 +152,7 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [ ] Ferramenta MCP `cto_alerta` para o agente responder sobre os alertas
 - [ ] Relatórios de cadastro (fibra sem ONU, ONUs de clientes inativos ocupando porta, CTOs sem coordenada) · aviso de falha dos fluxos pelo Zabbix · limpeza periódica da tabela `quedas`
 - [ ] Alertas de rádio
+- [ ] Importar a CA do Caddy do n8n no notebook de administração
 - [ ] Segunda ferramenta: detalhe de um host
 - [ ] Fluxos de escrita com aprovação humana
 
