@@ -25,6 +25,8 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
   - [x] **Canal Discord da equipe** (03/11): plugin oficial na mesma versão do núcleo, só o canal do agente, só cargo NOC, só com menção, DM desligada, token como SecretRef; 15 → 5 plugins carregados ([guia](../servicos/openclaw/README.md#canal-discord-da-equipe), [servidor](../servicos/discord/README.md))
   - [ ] Resumo em horário fixo no canal de resumo (agendamento do próprio agente + `noc_resumo`)
   - [ ] Regras do canal compartilhado (sem credenciais/community, alerta de impacto em equipamento de núcleo) — validar em sessão nova
+  - [ ] Testar mensagem direta ao bot (deve ser ignorada)
+  - [ ] Manter o plugin Discord na mesma versão do núcleo a cada atualização; revisar se o plugin `canvas` é necessário
   - [ ] Apagar snapshots antigos da VM (thin pool `local-lvm` superalocado), incluindo o de antes do MCP do n8n
   - [ ] Limpeza pós-MCP do n8n: drop-in com `NODE_EXTRA_CA_CERTS` e linha do `.bashrc` (o `run.sh` já define a CA) e regra de saída redundante no firewall da VM
   - [ ] Revisar os avisos do update 2026.10.10 (`openclaw update cleanup --dry-run`, busca de memória sem provider) sem rodar `doctor --fix`
