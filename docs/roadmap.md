@@ -81,7 +81,12 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [ ] Decidir sobre a disponibilidade: o servidor é um PC com dual boot (no Windows = NOC sem monitoramento)
 
 **Novos serviços (depois)**
-- [ ] Grafana (CT leve, plugin do Zabbix com usuário somente leitura, publicado no proxy)
+- [ ] Grafana (CT leve, plugin do Zabbix com usuário somente leitura, publicado no proxy) — **planejado (04/11)**
+  - [x] Decidido: dashboards do NOC no Grafana — o Zabbix 7.0 não importa dashboard global pela interface (só no 8.0)
+  - [ ] Validar o desenho (LXC leve: 2 vCPU, 1 GB, SSD de dados) dentro dos limites de RAM do host
+  - [ ] Usuário de API próprio no Zabbix (lista de permissões só `.get`) + firewall
+  - [ ] Instalação (apt) + plugin do Zabbix; dashboards Visão NOC, ICMP, backbone SNMP e por POP, com JSON versionado aqui
+  - [ ] Backup e publicação no proxy com Access List
 - [ ] Serviços pessoais (TeamSpeak/CS2) em VLAN separada, fora da documentação da empresa
 
 ## NetBox

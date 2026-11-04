@@ -26,6 +26,11 @@ zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz | runuser -u zabbix 
 - [`90-zabbix-lowwrite.conf`](90-zabbix-lowwrite.conf) em `/etc/postgresql/17/main/conf.d/`
 - nginx: `listen 80;` e `server_name` em `/etc/zabbix/nginx.conf`; remover o site padrão
 
+## Dashboards: importação no 7.0
+- O 7.0 **não importa dashboard global pela interface** — o *Import* em *Dashboards → All dashboards* (YAML/XML/JSON) chegou no **8.0**
+- No 7.0: API (`dashboard.get` → trocar IDs de hosts/itens/grupos → `dashboard.create`), dashboard **dentro de template** (vem junto ao importar o template) ou **Grafana** com o plugin do Zabbix
+- Decisão: dashboards do NOC no **Grafana** (planejado; usuário de API próprio, somente leitura)
+
 ## Configuração
 - Housekeeping: histórico 7 dias, trends 365 dias
 - Itens com intervalos de 1–5 min e pré-processamento *Discard unchanged with heartbeat*
