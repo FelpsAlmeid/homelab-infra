@@ -1,0 +1,326 @@
+{
+  "name": "ixc_sync_clientes",
+  "nodes": [
+    {
+      "id": "85801464-50cd-4b36-8262-ff377042ce27",
+      "name": "Diario (05:10)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 5,
+              "triggerAtMinute": 10
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c69cbfc1-fc2e-4efd-abeb-305dfbc90db2",
+      "name": "Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "417bbefe-7068-4a32-98fd-c0d48ac467b4",
+      "name": "Inicio",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        100
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "eccbd737-450f-4689-83e4-829f6621cdd5",
+              "name": "inicio",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f706f453-324f-47d6-ba6a-542627e8092d",
+      "name": "Consultas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\n// Cada consulta: tabela do IXC + filtro. 'tag' identifica a resposta depois.\nconst consultas = [\n  { tag: 'onus',   endpoint: 'radpop_radio_cliente_fibra', qtype: 'radpop_radio_cliente_fibra.id', query: '1', oper: '>=', sort: 'radpop_radio_cliente_fibra.id' },\n  { tag: 'logins', endpoint: 'radusuarios',               qtype: 'radusuarios.ativo',             query: 'S', oper: '=',  sort: 'radusuarios.id' },\n  { tag: 'ctr_A',  endpoint: 'cliente_contrato',          qtype: 'cliente_contrato.status_internet', query: 'A',  oper: '=', sort: 'cliente_contrato.id' },\n  { tag: 'ctr_FA', endpoint: 'cliente_contrato',          qtype: 'cliente_contrato.status_internet', query: 'FA', oper: '=', sort: 'cliente_contrato.id' },\n];\nreturn consultas.map(c => ({ json: { ...c, page: 1, rp: 1 } }));\n"
+      }
+    },
+    {
+      "id": "7a21c12b-659b-49b8-9317-820dac90d89f",
+      "name": "IXC total",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://<servidor-ixc>/webservice/v1/' + $json.endpoint }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "ixcsoft",
+              "value": "listar"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ qtype: $json.qtype, query: $json.query, oper: $json.oper, page: String($json.page), rp: String($json.rp), sortname: $json.sort, sortorder: 'asc' }) }}",
+        "options": {
+          "timeout": 90000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 500
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "",
+          "name": "IXC n8n-ro"
+        }
+      }
+    },
+    {
+      "id": "bea91d3d-ed04-4ad2-804b-5b39757c0082",
+      "name": "Paginas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst reqs = $('Consultas').all();\nconst out = [];\n$input.all().forEach((it, i) => {\n  const c = reqs[i].json;\n  const total = Number(it.json.total || 0);\n  if (!total && c.tag !== 'ctr_FA') throw new Error(`IXC retornou total 0 em ${c.tag} - sincronizacao abortada`);\n  const rp = 1000;\n  for (let p = 1; p <= Math.ceil(total / rp); p++) out.push({ json: { ...c, page: p, rp, total } });\n});\nreturn out;\n"
+      }
+    },
+    {
+      "id": "090b18bf-102f-4788-a059-d4cccd3674f6",
+      "name": "IXC pagina",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://<servidor-ixc>/webservice/v1/' + $json.endpoint }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "ixcsoft",
+              "value": "listar"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ qtype: $json.qtype, query: $json.query, oper: $json.oper, page: String($json.page), rp: String($json.rp), sortname: $json.sort, sortorder: 'asc' }) }}",
+        "options": {
+          "timeout": 90000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 500
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "",
+          "name": "IXC n8n-ro"
+        }
+      }
+    },
+    {
+      "id": "ee595486-9633-41cb-8ae4-c87ada5a5f19",
+      "name": "Montar mapa",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\n// LGPD: daqui pra frente so IDs e dados tecnicos. Nome, endereco, senha etc. sao descartados.\nconst num = v => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);\nconst dataOk = v => (!v || String(v).startsWith('0000')) ? null : String(v);\nconst reqs = $('Paginas').all();\nconst regs = { onus: [], logins: [], ctr_A: [], ctr_FA: [] };\nconst totais = {};\n$input.all().forEach((it, i) => {\n  const c = reqs[i].json;\n  totais[c.tag] = c.total;\n  for (const r of (it.json.registros || [])) regs[c.tag].push(r);\n});\n// Protecao: base incompleta nao grava (tolerancia de 2% para mudancas durante a paginacao)\nfor (const [tag, total] of Object.entries(totais)) {\n  if (regs[tag].length < total * 0.98) throw new Error(`${tag} incompleto: ${regs[tag].length} de ${total} - sincronizacao abortada`);\n}\n\nconst statusCtr = new Map();\nfor (const r of regs.ctr_A)  statusCtr.set(num(r.id), 'A');\nfor (const r of regs.ctr_FA) statusCtr.set(num(r.id), 'FA');\n\nconst logins = new Map();\nfor (const r of regs.logins) logins.set(num(r.id), { id_contrato: num(r.id_contrato), tipo_conexao_mapa: r.tipo_conexao_mapa || '' });\n\nconst rows = new Map();\nconst pend = new Map();\nconst comOnu = new Set();\nlet onuSemLogin = 0, loginInativoOuCtrFora = 0, dup = 0;\n\nfor (const o of regs.onus) {\n  const idLogin = num(o.id_login);\n  if (!idLogin) { onuSemLogin++; continue; }\n  comOnu.add(idLogin);\n  const lg = logins.get(idLogin);\n  const ctr = lg ? lg.id_contrato : num(o.id_contrato);\n  const st = statusCtr.get(ctr);\n  if (!lg || !st) { loginInativoOuCtrFora++; continue; }\n  const cto = num(o.id_caixa_ftth);\n  if (!cto) { pend.set(idLogin, { id_login: idLogin, id_contrato: ctr, motivo: 'ONU sem CTO' }); continue; }\n  if (rows.has(idLogin)) dup++;\n  const sinal = num(o.sinal_rx);\n  rows.set(idLogin, {\n    id_login: idLogin,\n    id_contrato: ctr,\n    id_onu: num(o.id),\n    id_transmissor: num(o.id_transmissor),\n    ponid: o.ponid ? String(o.ponid) : null,\n    id_caixa_ftth: cto,\n    porta_ftth: num(o.porta_ftth),\n    status_internet: st,\n    sinal_rx: (sinal === null || sinal === 0) ? null : sinal,\n    data_sinal: dataOk(o.data_sinal),\n  });\n}\n// Login ativo + contrato A/FA + sem ONU (cancelado com login ativo, radio ou cadastro incompleto)\n// So conexao Fibra (F). Radio 5.8/2.4 e Dedicado nao tem ONU e ficam fora.\nfor (const [idLogin, lg] of logins) {\n  if (comOnu.has(idLogin) || !statusCtr.has(lg.id_contrato)) continue;\n  if (lg.tipo_conexao_mapa !== 'F') continue;\n  pend.set(idLogin, { id_login: idLogin, id_contrato: lg.id_contrato, motivo: 'fibra sem ONU' });\n}\nconst resumo = {\n  onus: regs.onus.length, logins_ativos: regs.logins.length,\n  contratos_A: regs.ctr_A.length, contratos_FA: regs.ctr_FA.length,\n  mapeados: rows.size, pendentes: pend.size,\n  onu_sem_login: onuSemLogin, onu_login_inativo_ou_contrato_fora: loginInativoOuCtrFora, onu_duplicada_mesmo_login: dup,\n};\nif (!rows.size) throw new Error('Mapa vazio - sincronizacao abortada');\nreturn [{ json: { rows: [...rows.values()], pend: [...pend.values()], resumo } }];\n"
+      }
+    },
+    {
+      "id": "85b0b9c7-87b8-4e0b-83d7-f9c953c28fa4",
+      "name": "Gravar mapa",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH dados AS (\n  SELECT * FROM jsonb_to_recordset($1::jsonb)\n    AS x(id_login int, id_contrato int, id_onu int, id_transmissor int, ponid text,\n         id_caixa_ftth int, porta_ftth int, status_internet text, sinal_rx numeric, data_sinal timestamp)\n), up AS (\n  INSERT INTO clientes_cto (id_login, id_contrato, id_onu, id_transmissor, ponid, id_caixa_ftth,\n                            porta_ftth, status_internet, sinal_rx, data_sinal, atualizado_em)\n  SELECT id_login, id_contrato, id_onu, id_transmissor, ponid, id_caixa_ftth,\n         porta_ftth, status_internet, sinal_rx, data_sinal, now() FROM dados\n  ON CONFLICT (id_login) DO UPDATE SET\n    id_contrato = EXCLUDED.id_contrato, id_onu = EXCLUDED.id_onu, id_transmissor = EXCLUDED.id_transmissor,\n    ponid = EXCLUDED.ponid, id_caixa_ftth = EXCLUDED.id_caixa_ftth, porta_ftth = EXCLUDED.porta_ftth,\n    status_internet = EXCLUDED.status_internet, sinal_rx = EXCLUDED.sinal_rx,\n    data_sinal = EXCLUDED.data_sinal, atualizado_em = now()\n  RETURNING id_login\n), del AS (\n  DELETE FROM clientes_cto WHERE (SELECT count(*) FROM dados) > 0\n    AND id_login NOT IN (SELECT id_login FROM dados) RETURNING id_login\n)\n, pdados AS (\n  SELECT * FROM jsonb_to_recordset($2::jsonb) AS p(id_login int, id_contrato int, motivo text)\n), pend AS (\n  INSERT INTO cadastro_pendente (id_login, id_contrato, motivo, atualizado_em)\n  SELECT id_login, id_contrato, motivo, now() FROM pdados\n  ON CONFLICT (id_login) DO UPDATE SET id_contrato = EXCLUDED.id_contrato, motivo = EXCLUDED.motivo, atualizado_em = now()\n  RETURNING 1\n), pend_del AS (\n  DELETE FROM cadastro_pendente WHERE id_login NOT IN (SELECT id_login FROM pdados) RETURNING 1\n)\nINSERT INTO sync_log (fluxo, inicio, fim, registros, status, obs)\nVALUES ('clientes_cto', $3::timestamptz, now(), (SELECT count(*) FROM up), 'ok',\n        'removidos: ' || (SELECT count(*) FROM del) || ' | pendentes: ' || (SELECT count(*) FROM pend) || ' | ' || $4)\nRETURNING fluxo, registros, obs;",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($json.rows), JSON.stringify($json.pend), $('Inicio').first().json.inicio, JSON.stringify($json.resumo) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Postgres Noc"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Diario (05:10)": {
+      "main": [
+        [
+          {
+            "node": "Inicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual": {
+      "main": [
+        [
+          {
+            "node": "Inicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inicio": {
+      "main": [
+        [
+          {
+            "node": "Consultas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultas": {
+      "main": [
+        [
+          {
+            "node": "IXC total",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IXC total": {
+      "main": [
+        [
+          {
+            "node": "Paginas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paginas": {
+      "main": [
+        [
+          {
+            "node": "IXC pagina",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IXC pagina": {
+      "main": [
+        [
+          {
+            "node": "Montar mapa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar mapa": {
+      "main": [
+        [
+          {
+            "node": "Gravar mapa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Fortaleza",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": false
+  },
+  "pinData": {}
+}

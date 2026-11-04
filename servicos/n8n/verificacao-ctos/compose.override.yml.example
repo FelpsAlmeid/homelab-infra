@@ -1,0 +1,23 @@
+# /opt/n8n/compose.override.yml — Postgres só para os dados dos fluxos (o n8n segue no SQLite)
+# O Compose junta este arquivo ao compose.yml automaticamente (com -f, passar os dois).
+# NOC_DB_PASSWORD fica no .env (600), nunca aqui.
+services:
+  postgres:
+    image: postgres:17          # a 18 mudou o caminho do volume de dados
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: noc
+      POSTGRES_USER: noc
+      POSTGRES_PASSWORD: ${NOC_DB_PASSWORD}
+      TZ: America/Fortaleza
+      PGTZ: America/Fortaleza  # só vale para o psql DENTRO do container — ver ALTER DATABASE no schema.sql
+    volumes:
+      - noc_db:/var/lib/postgresql/data
+    networks: [interna]         # sem porta publicada: só o n8n alcança
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noc -d noc"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+volumes:
+  noc_db:

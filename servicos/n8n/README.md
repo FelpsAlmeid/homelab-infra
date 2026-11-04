@@ -94,6 +94,15 @@ Exceção à política de atualizações sob demanda: o n8n teve várias falhas 
 - Pelo agente: "Me dá o resumo do NOC" → **1 chamada de ferramenta**, 24 s, dados idênticos ao workflow.
 - Backup manual do CT: snapshot com Docker dentro do LXC ok (46 s, ~1 GB).
 
+## Verificação de CTOs (IXC → Discord)
+
+Segundo uso do CT (03/11/2026): monitoramento de fibra a partir do ERP IXC, com Postgres próprio no mesmo Compose e alertas editáveis no Discord — ver [`verificacao-ctos/`](verificacao-ctos/README.md).
+
+Mudanças no CT para isso:
+- **Saída permanente** (exceção à regra "só para atualizar"): API do IXC (443, IP do servidor) e API do Discord (443, faixa da Cloudflare) — ver [`ct.fw.example`](ct.fw.example)
+- `compose.override.yml` com `postgres:17` na rede `interna`, sem porta publicada
+- Fuso no banco: `ALTER DATABASE noc SET timezone TO 'America/Fortaleza'` — o `PGTZ` do container **não** vale para a conexão do n8n
+
 ## Próximos passos
 
 - Resumo em horário fixo enviado ao canal da equipe (substitui o heartbeat do agente)

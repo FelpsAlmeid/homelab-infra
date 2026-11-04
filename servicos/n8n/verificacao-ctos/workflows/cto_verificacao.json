@@ -1,0 +1,360 @@
+{
+  "name": "cto_verificacao",
+  "nodes": [
+    {
+      "id": "f7fb0a26-2234-44ef-a4bf-1d12263b9e6f",
+      "name": "A cada 5 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "7454b367-d737-4845-8d75-bb61fe975404",
+      "name": "Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "d7384f3e-7c92-42a2-b368-2bd440cacf23",
+      "name": "Janela",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        100
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Janela de consulta: ultimos 15 min, ou desde a 1a queda do alerta aberto mais antigo (para saber quem ainda esta offline). Limite: 7 dias.\nSELECT to_char(\n  greatest(\n    least(localtimestamp - interval '15 min',\n          coalesce((SELECT min(primeira_queda) FROM alertas WHERE fechado_em IS NULL), localtimestamp) - interval '1 min'),\n    localtimestamp - interval '7 days'),\n  'YYYY-MM-DD HH24:MI:SS') AS desde;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Postgres Noc"
+        }
+      }
+    },
+    {
+      "id": "1c48c8a0-eb74-480f-9775-6dde2483a2c0",
+      "name": "Consulta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{ json: { desde: $input.first().json.desde, page: 1, rp: 1 } }];"
+      }
+    },
+    {
+      "id": "44c806b6-0195-4781-8509-8557b8c9d7df",
+      "name": "IXC offline total",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "POST",
+        "url": "https://<servidor-ixc>/webservice/v1/radusuarios",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "ixcsoft",
+              "value": "listar"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ qtype: 'radusuarios.online', query: 'N', oper: '=', page: String($json.page), rp: String($json.rp), sortname: 'radusuarios.id', sortorder: 'asc', grid_param: JSON.stringify([ { TB: 'radusuarios.ativo', OP: '=', P: 'S' }, { TB: 'radusuarios.ultima_conexao_final', OP: '>=', P: $json.desde } ]) }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 300
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "",
+          "name": "IXC n8n-ro"
+        }
+      }
+    },
+    {
+      "id": "246d4d42-3b03-4604-9d8b-142fc3fdc7f5",
+      "name": "Paginas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst desde = $('Janela').first().json.desde;\nconst total = Number($input.first().json.total || 0);\nconst rp = 1000;\nconst n = Math.max(1, Math.ceil(total / rp)); // sempre 1 pagina, para a normalizacao rodar mesmo com 0 offline\nreturn Array.from({ length: n }, (_, i) => ({ json: { desde, page: i + 1, rp, total } }));\n"
+      }
+    },
+    {
+      "id": "a47f7aea-af54-402e-bbb9-cf779d5b0707",
+      "name": "IXC offline pagina",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "POST",
+        "url": "https://<servidor-ixc>/webservice/v1/radusuarios",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "ixcsoft",
+              "value": "listar"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ qtype: 'radusuarios.online', query: 'N', oper: '=', page: String($json.page), rp: String($json.rp), sortname: 'radusuarios.id', sortorder: 'asc', grid_param: JSON.stringify([ { TB: 'radusuarios.ativo', OP: '=', P: 'S' }, { TB: 'radusuarios.ultima_conexao_final', OP: '>=', P: $json.desde } ]) }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 300
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "",
+          "name": "IXC n8n-ro"
+        }
+      }
+    },
+    {
+      "id": "988889a5-775a-42d4-9697-ed030210f6cf",
+      "name": "Offline",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\n// So queda de enlace conta (fibra ou energia). User-Request, Admin-Reset etc. ficam fora.\nconst MOTIVOS = new Set(['Lost-Carrier', 'Lost-Service']);\nconst total = Number($('Paginas').first().json.total || 0);\nlet lidos = 0;\nconst porLogin = new Map();\nfor (const it of $input.all()) {\n  for (const r of (it.json.registros || [])) {\n    lidos++;\n    if (r.online !== 'N' || !MOTIVOS.has(r.motivo_desconexao)) continue;\n    const d = r.ultima_conexao_final;\n    if (!d || String(d).startsWith('0000')) continue;\n    porLogin.set(Number(r.id), { id_login: Number(r.id), desconectou_em: String(d), motivo: r.motivo_desconexao });\n  }\n}\nif (lidos < total * 0.98) throw new Error(`Offline incompleto: ${lidos} de ${total} - ciclo abortado`);\n// LGPD: segue so ID, horario e motivo\nreturn [{ json: { off: [...porLogin.values()], lidos } }];\n"
+      }
+    },
+    {
+      "id": "a3274f61-7416-453e-a216-3452748308e6",
+      "name": "Correlacionar",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        100
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH off AS (\n  SELECT * FROM jsonb_to_recordset($1::jsonb) AS x(id_login int, desconectou_em timestamp, motivo text)\n), grava AS (\n  INSERT INTO quedas (id_login, desconectou_em, motivo)\n  SELECT id_login, desconectou_em, motivo FROM off\n  ON CONFLICT DO NOTHING RETURNING 1\n), rec AS (   -- quedas recentes (15 min) de clientes do mapa\n  SELECT o.id_login, o.desconectou_em, c.id_transmissor, c.ponid, c.id_caixa_ftth\n  FROM off o JOIN clientes_cto c USING (id_login)\n  WHERE o.desconectou_em >= localtimestamp - interval '15 min'\n), rec_pon AS (\n  SELECT r.*, max(r.desconectou_em) OVER (PARTITION BY r.id_transmissor, r.ponid) AS gmax\n  FROM rec r WHERE r.ponid IS NOT NULL\n), pon AS (   -- PON: >= 5 offline e >= 30%, quedas dentro de 10 min\n  SELECT 'PON'::text AS nivel, rp.id_transmissor || '|' || rp.ponid AS chave, t.total,\n         array_agg(rp.id_login) AS logins, min(rp.desconectou_em) AS primeira, max(rp.desconectou_em) AS ultima\n  FROM rec_pon rp\n  JOIN (SELECT id_transmissor, ponid, count(*) AS total FROM clientes_cto GROUP BY 1, 2) t USING (id_transmissor, ponid)\n  WHERE rp.desconectou_em >= rp.gmax - interval '10 min'\n  GROUP BY rp.id_transmissor, rp.ponid, t.total\n  HAVING count(*) >= 5 AND count(*) >= 0.30 * t.total\n), rec_cto AS (   -- CTO: so fora de PON em alerta (novo ou aberto)\n  SELECT r.*, max(r.desconectou_em) OVER (PARTITION BY r.id_caixa_ftth) AS gmax\n  FROM rec r\n  WHERE NOT EXISTS (SELECT 1 FROM pon p WHERE p.chave = r.id_transmissor || '|' || r.ponid)\n    AND NOT EXISTS (SELECT 1 FROM alertas a WHERE a.nivel = 'PON' AND a.fechado_em IS NULL\n                    AND a.chave = r.id_transmissor || '|' || r.ponid)\n), cto AS (   -- CTO: >= 2 offline e >= 60%, quedas dentro de 10 min\n  SELECT 'CTO'::text, rc.id_caixa_ftth::text, t.total,\n         array_agg(rc.id_login), min(rc.desconectou_em), max(rc.desconectou_em)\n  FROM rec_cto rc\n  JOIN (SELECT id_caixa_ftth, count(*) AS total FROM clientes_cto GROUP BY 1) t USING (id_caixa_ftth)\n  WHERE rc.desconectou_em >= rc.gmax - interval '10 min'\n  GROUP BY rc.id_caixa_ftth, t.total\n  HAVING count(*) >= 2 AND count(*) >= 0.60 * t.total\n), cand AS (\n  SELECT * FROM pon UNION ALL SELECT * FROM cto\n)\nINSERT INTO alertas AS a (nivel, chave, total, logins, afetados, primeira_queda, ultima_queda, evento)\nSELECT nivel, chave, total, logins, cardinality(logins), primeira, ultima, 'novo' FROM cand\nON CONFLICT (nivel, chave) WHERE fechado_em IS NULL DO UPDATE SET\n  logins       = ARRAY(SELECT DISTINCT unnest(a.logins || EXCLUDED.logins)),\n  afetados     = cardinality(ARRAY(SELECT DISTINCT unnest(a.logins || EXCLUDED.logins))),\n  ultima_queda = greatest(a.ultima_queda, EXCLUDED.ultima_queda),\n  -- ja notificado e cresceu 50% ou mais: marca 'agravado' para notificar de novo\n  evento = CASE WHEN a.notificado_em IS NOT NULL\n                 AND cardinality(ARRAY(SELECT DISTINCT unnest(a.logins || EXCLUDED.logins)))\n                     >= 1.5 * coalesce(a.afetados_notificados, a.afetados)\n                THEN 'agravado' ELSE a.evento END,\n  notificado_em = CASE WHEN a.notificado_em IS NOT NULL\n                 AND cardinality(ARRAY(SELECT DISTINCT unnest(a.logins || EXCLUDED.logins)))\n                     >= 1.5 * coalesce(a.afetados_notificados, a.afetados)\n                THEN NULL ELSE a.notificado_em END\nRETURNING a.id, a.nivel, a.chave, a.afetados, a.total, a.evento;",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($('Offline').first().json.off) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Postgres Noc"
+        }
+      }
+    },
+    {
+      "id": "cc2d8637-bfd6-4d3b-baef-349aec4db939",
+      "name": "Normalizar",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1760,
+        100
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Fecha alerta quando >= 80% dos afetados voltaram (ou seja, <= 20% ainda offline)\nWITH off AS (\n  SELECT id_login FROM jsonb_to_recordset($1::jsonb) AS x(id_login int)\n), st AS (\n  SELECT a.id, cardinality(a.logins) AS n,\n         (SELECT count(*) FROM unnest(a.logins) AS l(id) WHERE l.id IN (SELECT id_login FROM off)) AS ainda\n  FROM alertas a\n  WHERE a.fechado_em IS NULL AND a.aberto_em < now() - interval '4 min'\n)\nUPDATE alertas a SET fechado_em = now(), evento = 'normalizado', notificado_em = NULL\nFROM st\nWHERE a.id = st.id AND st.ainda <= 0.2 * st.n\nRETURNING a.id, a.nivel, a.chave, st.n AS afetados, st.ainda AS ainda_offline,\n          to_char(now() - a.aberto_em, 'HH24:MI') AS duracao;",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($('Offline').first().json.off) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Postgres Noc"
+        }
+      },
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "A cada 5 min": {
+      "main": [
+        [
+          {
+            "node": "Janela",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual": {
+      "main": [
+        [
+          {
+            "node": "Janela",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Janela": {
+      "main": [
+        [
+          {
+            "node": "Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta": {
+      "main": [
+        [
+          {
+            "node": "IXC offline total",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IXC offline total": {
+      "main": [
+        [
+          {
+            "node": "Paginas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paginas": {
+      "main": [
+        [
+          {
+            "node": "IXC offline pagina",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IXC offline pagina": {
+      "main": [
+        [
+          {
+            "node": "Offline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Offline": {
+      "main": [
+        [
+          {
+            "node": "Correlacionar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correlacionar": {
+      "main": [
+        [
+          {
+            "node": "Normalizar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Fortaleza",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": false
+  },
+  "pinData": {}
+}

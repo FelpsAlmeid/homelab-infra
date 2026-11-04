@@ -1,0 +1,406 @@
+{
+  "name": "ixc_sync_ctos",
+  "nodes": [
+    {
+      "id": "f5ed2bdf-50ae-49cd-ad82-2d5eb299f610",
+      "name": "Semanal (dom 04:10)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                0
+              ],
+              "triggerAtHour": 4,
+              "triggerAtMinute": 10
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "9154b0f7-0f9b-4158-8b76-5614e2a379a8",
+      "name": "Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "8bdbb46b-e088-473a-8d4d-1512ed44b289",
+      "name": "Inicio",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        100
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "43f57487-af5e-492f-a8a0-a1c882867b28",
+              "name": "inicio",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "57791527-7cb0-47b1-ad97-93073b030b2c",
+      "name": "IXC OLTs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "POST",
+        "url": "https://<servidor-ixc>/webservice/v1/radpop_radio",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "ixcsoft",
+              "value": "listar"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ qtype: 'radpop_radio.descricao', query: 'OLT', oper: 'L', page: '1', rp: '1000', sortname: 'radpop_radio.id', sortorder: 'asc' }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "",
+          "name": "IXC n8n-ro"
+        }
+      }
+    },
+    {
+      "id": "21458de8-6058-4a1c-8410-d22754587e73",
+      "name": "Mapear OLTs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const num = v => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);\nconst txt = v => (v === '' || v == null) ? null : String(v);\n\nconst regs = $input.first().json.registros || [];\n// So transmissores cujo nome comeca com \"OLT\" (padrao de nomes do IXC)\nconst rows = regs\n  .filter(r => /^OLT/i.test(r.descricao || ''))\n  .map(r => ({\n    id: num(r.id),\n    descricao: txt(r.descricao),\n    id_pop: num(r.id_pop),\n    fabricante_modelo: txt(r.fabricante_modelo),\n    busca_potencia: txt(r.busca_potencia),\n    ativo: txt(r.ativo),\n  }));\n// Protecao: sem dados nao grava (evita apagar a tabela por falha na API)\nif (!rows.length) throw new Error('Nenhuma OLT retornada pelo IXC - sincronizacao abortada');\nreturn [{ json: { rows, total: rows.length } }];\n"
+      }
+    },
+    {
+      "id": "1b54aad6-d1b7-4b85-a1b3-13fe00db11ba",
+      "name": "Gravar OLTs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        880,
+        100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH dados AS (\n  SELECT * FROM jsonb_to_recordset($1::jsonb)\n    AS x(id int, descricao text, id_pop int, fabricante_modelo text, busca_potencia text, ativo text)\n), up AS (\n  INSERT INTO olts (id, descricao, id_pop, fabricante_modelo, busca_potencia, ativo, atualizado_em)\n  SELECT id, descricao, id_pop, fabricante_modelo, busca_potencia, ativo, now() FROM dados\n  ON CONFLICT (id) DO UPDATE SET\n    descricao = EXCLUDED.descricao, id_pop = EXCLUDED.id_pop,\n    fabricante_modelo = EXCLUDED.fabricante_modelo, busca_potencia = EXCLUDED.busca_potencia,\n    ativo = EXCLUDED.ativo, atualizado_em = now()\n  RETURNING id\n), del AS (\n  DELETE FROM olts WHERE (SELECT count(*) FROM dados) > 0 AND id NOT IN (SELECT id FROM dados) RETURNING id\n)\nINSERT INTO sync_log (fluxo, inicio, fim, registros, status, obs)\nVALUES ('olts', $2::timestamptz, now(), (SELECT count(*) FROM up), 'ok',\n        'removidas: ' || (SELECT count(*) FROM del))\nRETURNING fluxo, registros, obs;",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($json.rows), $('Inicio').first().json.inicio ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Postgres Noc"
+        }
+      }
+    },
+    {
+      "id": "1bba79e6-7c08-4532-a8ba-3a3f3b27f7cd",
+      "name": "IXC CTOs total",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "POST",
+        "url": "https://<servidor-ixc>/webservice/v1/rad_caixa_ftth",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "ixcsoft",
+              "value": "listar"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ qtype: 'rad_caixa_ftth.id', query: '1', oper: '>=', page: '1', rp: '1' }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "",
+          "name": "IXC n8n-ro"
+        }
+      }
+    },
+    {
+      "id": "ddf93654-3169-4b4b-a205-181d792decef",
+      "name": "Paginas CTOs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst total = Number($input.first().json.total || 0);\nif (!total) throw new Error('IXC retornou total de CTOs = 0 - sincronizacao abortada');\nconst rp = 1000;\nconst paginas = Math.ceil(total / rp);\nreturn Array.from({ length: paginas }, (_, i) => ({ json: { page: i + 1, rp, total } }));\n"
+      }
+    },
+    {
+      "id": "61fbd214-8990-4dd4-a502-ff07f417c66f",
+      "name": "IXC CTOs pagina",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "POST",
+        "url": "https://<servidor-ixc>/webservice/v1/rad_caixa_ftth",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "ixcsoft",
+              "value": "listar"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ qtype: 'rad_caixa_ftth.id', query: '1', oper: '>=', page: String($json.page), rp: String($json.rp), sortname: 'rad_caixa_ftth.id', sortorder: 'asc' }) }}",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "",
+          "name": "IXC n8n-ro"
+        }
+      }
+    },
+    {
+      "id": "4b95feb3-abf5-49c1-bfb6-8867a42d5f5f",
+      "name": "Mapear CTOs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const num = v => (v === '' || v == null || isNaN(Number(v))) ? null : Number(v);\nconst txt = v => (v === '' || v == null) ? null : String(v);\n\nconst total = Number($('Paginas CTOs').first().json.total);\nconst porId = new Map();\nfor (const it of $input.all()) {\n  for (const r of (it.json.registros || [])) {\n    const lat = num(r.latitude), lon = num(r.longitude);\n    porId.set(num(r.id), {\n      id: num(r.id),\n      descricao: txt(r.descricao),\n      id_transmissor: num(r.id_transmissor),\n      id_projeto: num(r.id_projeto),\n      capacidade: num(r.capacidade),\n      status: txt(r.status),\n      tipo: txt(r.tipo),\n      latitude: (lat !== null && Math.abs(lat) <= 90) ? lat : null,\n      longitude: (lon !== null && Math.abs(lon) <= 180) ? lon : null,\n    });\n  }\n}\nconst rows = [...porId.values()].filter(r => r.id !== null);\n// Protecao: so grava se veio a base completa\nif (rows.length < total) throw new Error(`CTOs incompletas: ${rows.length} de ${total} - sincronizacao abortada`);\nreturn [{ json: { rows, total: rows.length } }];\n"
+      }
+    },
+    {
+      "id": "7de89054-cf60-4658-af6a-c2331e3d7259",
+      "name": "Gravar CTOs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1980,
+        100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH dados AS (\n  SELECT * FROM jsonb_to_recordset($1::jsonb)\n    AS x(id int, descricao text, id_transmissor int, id_projeto int, capacidade int,\n         status text, tipo text, latitude numeric, longitude numeric)\n), up AS (\n  INSERT INTO ctos (id, descricao, id_transmissor, id_projeto, capacidade, status, tipo, latitude, longitude, atualizado_em)\n  SELECT id, descricao, id_transmissor, id_projeto, capacidade, status, tipo, latitude, longitude, now() FROM dados\n  ON CONFLICT (id) DO UPDATE SET\n    descricao = EXCLUDED.descricao, id_transmissor = EXCLUDED.id_transmissor,\n    id_projeto = EXCLUDED.id_projeto, capacidade = EXCLUDED.capacidade,\n    status = EXCLUDED.status, tipo = EXCLUDED.tipo,\n    latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude, atualizado_em = now()\n  RETURNING id\n), del AS (\n  DELETE FROM ctos WHERE (SELECT count(*) FROM dados) > 0 AND id NOT IN (SELECT id FROM dados) RETURNING id\n)\nINSERT INTO sync_log (fluxo, inicio, fim, registros, status, obs)\nVALUES ('ctos', $2::timestamptz, now(), (SELECT count(*) FROM up), 'ok',\n        'removidas: ' || (SELECT count(*) FROM del))\nRETURNING fluxo, registros, obs;",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($json.rows), $('Inicio').first().json.inicio ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Postgres Noc"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Semanal (dom 04:10)": {
+      "main": [
+        [
+          {
+            "node": "Inicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual": {
+      "main": [
+        [
+          {
+            "node": "Inicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inicio": {
+      "main": [
+        [
+          {
+            "node": "IXC OLTs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IXC OLTs": {
+      "main": [
+        [
+          {
+            "node": "Mapear OLTs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mapear OLTs": {
+      "main": [
+        [
+          {
+            "node": "Gravar OLTs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar OLTs": {
+      "main": [
+        [
+          {
+            "node": "IXC CTOs total",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IXC CTOs total": {
+      "main": [
+        [
+          {
+            "node": "Paginas CTOs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paginas CTOs": {
+      "main": [
+        [
+          {
+            "node": "IXC CTOs pagina",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IXC CTOs pagina": {
+      "main": [
+        [
+          {
+            "node": "Mapear CTOs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mapear CTOs": {
+      "main": [
+        [
+          {
+            "node": "Gravar CTOs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Fortaleza",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {}
+}

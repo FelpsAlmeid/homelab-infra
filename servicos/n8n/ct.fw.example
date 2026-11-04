@@ -13,6 +13,9 @@ OUT ACCEPT -dest <ip-glpi> -p tcp -dport 8080 -log nolog # GLPI API
 OUT ACCEPT -dest <ip-ollama> -p tcp -dport 11434 -log nolog # Ollama
 OUT ACCEPT -p udp -dport 53 -log nolog # DNS
 OUT ACCEPT -p tcp -dport 53 -log nolog # DNS
+# Verificação de CTOs (saída permanente, só o necessário):
+# OUT ACCEPT -dest <ip-servidor-ixc> -p tcp -dport 443 -log nolog # IXC API
+# OUT ACCEPT -dest <faixa-cloudflare-discord> -p tcp -dport 443 -log nolog # Discord API (resolver discord.com antes)
 # Só durante instalação/atualização (o n8n-update.sh abre e fecha sozinho):
 # OUT ACCEPT -p tcp -dport 443 -log nolog # TEMP
 # OUT ACCEPT -p tcp -dport 80 -log nolog # TEMP

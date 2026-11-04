@@ -1,0 +1,255 @@
+{
+  "name": "cto_notificar",
+  "nodes": [
+    {
+      "id": "57689d42-15b6-4126-8de3-7188930278ad",
+      "name": "A cada 1 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ae47b263-29fd-4d40-afe8-83f38e56b717",
+      "name": "Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "6d0db769-8290-4015-ab99-5899e84b6268",
+      "name": "Pendentes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH nunca_anunciado AS (   -- abriu e normalizou antes de ser anunciado: nao publica\n  UPDATE alertas SET notificado_em = now()\n  WHERE notificado_em IS NULL AND evento = 'normalizado' AND discord_msg_id IS NULL\n  RETURNING id\n)\nSELECT a.id, a.nivel, a.chave, a.evento, a.afetados, a.total, a.discord_msg_id,\n       to_char(a.primeira_queda, 'DD/MM HH24:MI') AS inicio,\n       to_char(a.fechado_em, 'DD/MM HH24:MI')     AS fim,\n       (floor(extract(epoch FROM coalesce(a.fechado_em, now()) - a.aberto_em) / 3600))::int || 'h'\n         || lpad((floor(extract(epoch FROM coalesce(a.fechado_em, now()) - a.aberto_em) / 60))::int % 60 || '', 2, '0') AS duracao,\n       (SELECT o.descricao FROM clientes_cto c JOIN olts o ON o.id = c.id_transmissor\n         WHERE c.id_login = ANY(a.logins) LIMIT 1) AS olt,\n       (SELECT c.ponid FROM clientes_cto c WHERE c.id_login = ANY(a.logins) LIMIT 1) AS ponid,\n       (SELECT count(*) FROM clientes_cto c WHERE c.id_login = ANY(a.logins) AND c.sinal_rx < -27) AS sinal_ruim,\n       (SELECT coalesce(json_agg(x ORDER BY x.off DESC, x.cto), '[]'::json) FROM (\n          SELECT c.id_caixa_ftth AS cto, t.descricao, t.latitude, t.longitude,\n                 count(*) AS off,\n                 (SELECT count(*) FROM clientes_cto c2 WHERE c2.id_caixa_ftth = c.id_caixa_ftth) AS total,\n                 array_agg(c.porta_ftth ORDER BY c.porta_ftth) AS portas\n          FROM clientes_cto c LEFT JOIN ctos t ON t.id = c.id_caixa_ftth\n          WHERE c.id_login = ANY(a.logins)\n          GROUP BY c.id_caixa_ftth, t.descricao, t.latitude, t.longitude) x) AS ctos\nFROM alertas a\nWHERE a.notificado_em IS NULL\n  AND a.id NOT IN (SELECT id FROM nunca_anunciado)\nORDER BY a.id\nLIMIT 20;",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Postgres Noc"
+        }
+      }
+    },
+    {
+      "id": "bb24081a-cf3a-42d7-83e4-971279b4fe53",
+      "name": "Montar mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\n// Monta o cartao do Discord. LGPD: so dados de rede (OLT, PON, CTO, portas, contagens). Nenhum ID de cliente.\nconst CANAL = '<id-do-canal>';\nconst API = 'https://discord.com/api/v10';\nconst COR = { novo: 0xD32F2F, agravado: 0xF57C00, normalizado: 0x2F6E1A };\nconst ICONE = { novo: '🔴', agravado: '🟠', normalizado: '🟢' };\nconst corta = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);\n\nreturn $input.all().filter(i => i.json.id).map(({ json: a }) => {\n  const ctos = a.ctos || [];\n  const teste = String(a.chave).startsWith('teste') ? '[TESTE] ' : '';\n  const pct = a.total ? Math.round((a.afetados / a.total) * 100) : 0;\n  const nomeCto = ctos[0] ? (ctos[0].descricao || `CTO ${ctos[0].cto}`) : `CTO ${a.chave}`;\n  const titulo = a.nivel === 'PON'\n    ? `${ICONE[a.evento]} ${teste}PON sem sinal — ${a.olt || 'OLT ?'} · PON ${a.ponid || '?'}`\n    : `${ICONE[a.evento]} ${teste}CTO fora — ${nomeCto}`;\n\n  let desc;\n  if (a.evento === 'normalizado') {\n    desc = `**Normalizado** às ${a.fim} · duração **${a.duracao}**\\nEra: ${a.afetados} de ${a.total} clientes offline (${pct}%) desde ${a.inicio}`;\n  } else {\n    desc = `**${a.afetados} de ${a.total}** clientes offline (**${pct}%**) desde **${a.inicio}**`\n         + (a.evento === 'agravado' ? '\\n⚠️ Alerta **agravado** desde o primeiro aviso' : '');\n  }\n\n  const linhas = ctos.slice(0, 15).map(c => {\n    const mapa = (c.latitude && c.longitude) ? ` · [mapa](https://maps.google.com/?q=${c.latitude},${c.longitude})` : '';\n    return `• **${c.descricao || 'CTO ' + c.cto}** — ${c.off}/${c.total} off · portas ${(c.portas || []).join(', ')}${mapa}`;\n  });\n  if (ctos.length > 15) linhas.push(`… e mais ${ctos.length - 15} CTOs`);\n\n  const fields = [\n    { name: 'OLT', value: a.olt || '—', inline: true },\n    { name: 'PON', value: a.ponid || '—', inline: true },\n    { name: 'Início', value: a.inicio || '—', inline: true },\n    { name: `CTOs afetadas (${ctos.length})`, value: corta(linhas.join('\\n') || '—', 1024) },\n  ];\n  if (Number(a.sinal_ruim) > 0) {\n    fields.push({ name: 'Sinal antes da queda', value: `${a.sinal_ruim} ONU(s) já com sinal abaixo de −27 dBm (pode ser problema individual)` });\n  }\n\n  const body = {\n    content: '',\n    allowed_mentions: { parse: [] },\n    embeds: [{\n      title: corta(titulo, 256),\n      description: desc,\n      color: COR[a.evento] ?? COR.novo,\n      fields,\n      footer: { text: `Alerta #${a.id} · NOC` },\n      timestamp: new Date().toISOString(),\n    }],\n  };\n  const editar = !!a.discord_msg_id;\n  return { json: {\n    id: a.id, evento: a.evento, afetados: a.afetados,\n    method: editar ? 'PATCH' : 'POST',\n    url: editar ? `${API}/channels/${CANAL}/messages/${a.discord_msg_id}` : `${API}/channels/${CANAL}/messages`,\n    body,\n  } };\n});\n"
+      }
+    },
+    {
+      "id": "3decf296-d2d5-463e-b185-754277905991",
+      "name": "Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "parameters": {
+        "method": "={{ $json.method }}",
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 20000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1000
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Discord Operador de Alertas"
+        }
+      }
+    },
+    {
+      "id": "dc7f89b1-5b39-40ba-9681-3a925436d375",
+      "name": "Resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\n// Resultado do Discord: ok -> marca enviado; 404 na edicao -> mensagem apagada, recria no proximo ciclo; outro -> fica pendente\nconst reqs = $('Montar mensagem').all();\nreturn $input.all().map((it, i) => {\n  const r = reqs[i].json;\n  const code = Number(it.json.statusCode || 0);\n  let status = 'erro';\n  if (code >= 200 && code < 300) status = 'ok';\n  else if (code === 404 && r.method === 'PATCH') status = 'reset';\n  const msg = (it.json.body && it.json.body.id) ? String(it.json.body.id) : '';\n  return { json: { id: r.id, evento: r.evento, afetados: r.afetados, status, code, msg } };\n});\n"
+      }
+    },
+    {
+      "id": "97cc2d14-403d-4aeb-b335-a646c20fa85d",
+      "name": "Marcar",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1100,
+        100
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE alertas SET\n  notificado_em        = CASE WHEN $2 = 'ok' THEN now() ELSE notificado_em END,\n  afetados_notificados = CASE WHEN $2 = 'ok' THEN afetados ELSE afetados_notificados END,\n  discord_msg_id       = CASE WHEN $2 = 'ok' THEN coalesce(nullif($3, ''), discord_msg_id)\n                              WHEN $2 = 'reset' THEN NULL\n                              ELSE discord_msg_id END\nWHERE id = $1::bigint\n  AND evento = $4 AND afetados = $5::int   -- se mudou durante o envio, fica pendente e edita no proximo ciclo\nRETURNING id, evento, notificado_em IS NOT NULL AS enviado;",
+        "options": {
+          "queryReplacement": "={{ [ $json.id, $json.status, $json.msg, $json.evento, $json.afetados ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "",
+          "name": "Postgres Noc"
+        }
+      }
+    },
+    {
+      "id": "654128bf-fa4d-42e2-b0e5-cfd7ecbd4fdb",
+      "name": "Conferir erros",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        100
+      ],
+      "executeOnce": true,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst erros = $('Resultado').all().filter(i => i.json.status === 'erro');\nif (erros.length) throw new Error('Discord recusou ' + erros.length + ' envio(s): ' + erros.map(e => `#${e.json.id} HTTP ${e.json.code}`).join(', '));\nreturn [{ json: { ok: true } }];\n"
+      }
+    }
+  ],
+  "connections": {
+    "A cada 1 min": {
+      "main": [
+        [
+          {
+            "node": "Pendentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual": {
+      "main": [
+        [
+          {
+            "node": "Pendentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pendentes": {
+      "main": [
+        [
+          {
+            "node": "Montar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar mensagem": {
+      "main": [
+        [
+          {
+            "node": "Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord": {
+      "main": [
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado": {
+      "main": [
+        [
+          {
+            "node": "Marcar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar": {
+      "main": [
+        [
+          {
+            "node": "Conferir erros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Fortaleza",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true
+  },
+  "pinData": {}
+}

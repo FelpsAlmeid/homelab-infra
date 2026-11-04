@@ -139,13 +139,17 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 ## n8n (orquestração do NOC)
 
 - [x] CT 108 não privilegiado com Docker, Caddy `tls internal`, firewall IN/OUT fechado (03/11)
-- [x] Saída para a internet só durante instalação/atualização
+- [x] Saída para a internet só durante instalação/atualização (exceção 03/11: IXC e API do Discord, só 443, para a verificação de CTOs)
 - [x] Tokens próprios somente leitura (Zabbix, NetBox com IP, GLPI com cliente de API + grupo NOC), escrita negada nos três
 - [x] Workflow `noc_resumo` + `mcp_noc` (MCP Server Trigger com Bearer) ligados ao OpenClaw
 - [x] Backup diário + cópia semanal no Drive
 - [x] Checagem semanal de versão e avisos de segurança → Zabbix; script de atualização com snapshot
 - [ ] Tokens diretos de Zabbix/NetBox/GLPI na VM do agente: **mantidos por enquanto** (detalhe de host); revisar na Consolidação
-- [ ] Alertas de fibra e rádio nos canais do Discord (o n8n hoje não tem saída para a internet — decidir como liberar só o necessário)
+- [x] **Verificação de CTOs** (IXC → Postgres → Discord, [guia](../servicos/n8n/verificacao-ctos/README.md), 03/11): mapa cliente → CTO → PON, alerta de PON (≥ 5 e ≥ 30%) antes do de CTO (≥ 2 e ≥ 60%), mensagem única editada (novo → agravado → normalizado), testado em produção
+- [ ] Verificação de CTOs: conferir publicação dos 4 fluxos; calibrar limites com alertas reais; título "normalizada"
+- [ ] Ferramenta MCP `cto_alerta` para o agente responder sobre os alertas
+- [ ] Relatórios de cadastro (fibra sem ONU, ONUs de clientes inativos ocupando porta, CTOs sem coordenada) · aviso de falha dos fluxos pelo Zabbix · limpeza periódica da tabela `quedas`
+- [ ] Alertas de rádio
 - [ ] Segunda ferramenta: detalhe de um host
 - [ ] Fluxos de escrita com aprovação humana
 
@@ -172,6 +176,6 @@ Rodada de testes de segurança e de uso no dia a dia, antes de considerar o proj
 
 1. **Zabbix em escala (~450 dispositivos):** dependências/severidades, filtro de interfaces no LLD e importação CSV no NetBox (ICMP padrão e dimensionamento do CT 104 concluídos em 30/10).
 2. Política de saída dos containers (egress) — o Zabbix vai precisar alcançar as novas redes.
-3. ~~Primeiro caso de uso N2~~ (feito via n8n, 03/11) · ~~canal Discord~~ (03/11); próximo no agente: resumo em horário fixo no canal e alertas do n8n no Discord.
+3. ~~Primeiro caso de uso N2~~ (feito via n8n, 03/11) · ~~canal Discord~~ (03/11); ~~alertas de fibra no Discord~~ (03/11, direto pelo n8n); próximo no agente: resumo em horário fixo no canal e a ferramenta `cto_alerta`.
 4. Grafana; depois serviços pessoais em VLAN separada.
 5. Consolidação: testes de segurança e de uso.

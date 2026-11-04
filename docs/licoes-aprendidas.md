@@ -77,3 +77,9 @@ Problemas reais encontrados na montagem e como foram resolvidos.
 | OpenClaw + Discord | Liberação por cargo não funciona | Allowlist de cargos depende da **Server Members Intent** | Ligar a intent no Developer Portal |
 | netbox-zabbix-sync (inventário) | Coordenada do site não aparece no host; log `lookup for 'latitude' returned an empty value` | O mapa `"latitude"` lê só o campo do device; não há reserva device → site | `device_inventory_map` com `site/latitude` / `site/longitude` (uma origem por campo) |
 | netbox-zabbix-sync | Device novo não entra no Zabbix e não aparece no log | Fora do filtro (sem tag, status ou **IP primário**): o sync nem o enxerga | Conferir por contagem NetBox × Zabbix |
+| Postgres em container + cliente externo | Janela "últimos 15 min" deslocada 3 h; nenhuma queda encontrada | `PGTZ` no ambiente do container só vale para o `psql` de dentro; a conexão do n8n usava o fuso do servidor (UTC) | `ALTER DATABASE <db> SET timezone TO 'America/Fortaleza'` + reconectar o cliente; conferir com `SHOW timezone` (`source = database`) |
+| `docker compose exec -e VAR=` | `invalid value for parameter "TimeZone": ""` | `-e VAR=` define a variável **vazia**, não remove | `exec <serviço> env -u VAR <comando>` |
+| `docker compose -f` | Serviço do override "não existe" | Com `-f`, o `compose.override.yml` deixa de ser lido automaticamente | Passar os dois arquivos com `-f` |
+| IXC (API) | Login com `id_caixa_ftth = 0` em clientes de fibra | O vínculo com CTO/porta fica na ONU (`radpop_radio_cliente_fibra`), não no login | Montar o mapa pela ONU (`id_login`) |
+| IXC (API) | "Sinal" da ONU desatualizado (leituras de meses atrás) | `sinal_rx`/`data_sinal` só mudam quando o IXC lê a OLT | Usar como contexto, nunca como indicador em tempo real |
+| Mapa de clientes | Centenas de "sem ONU" nos pendentes | Clientes de rádio entram na mesma base de logins | Filtrar por `tipo_conexao_mapa = 'F'` |
