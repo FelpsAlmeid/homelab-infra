@@ -79,6 +79,10 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [ ] Dependências de triggers (equipamento atrás de POP/concentrador não alerta se o pai cair) e severidade por função, para não abrir dezenas de chamados no GLPI numa queda
 - [x] CT 104 dimensionado (30/10): 4 núcleos, 6 GB, 80 GB; `StartPingers=5` e caches em `zabbix_server.d/90-escala.conf`; PostgreSQL `shared_buffers` 1 GB
 - [ ] Decidir sobre a disponibilidade: o servidor é um PC com dual boot (no Windows = NOC sem monitoramento)
+- [x] Inventário do host vindo do NetBox (coordenadas, site, fabricante, modelo, serial) + widget **Geomap** (03–04/11)
+- [x] Coordenada **do site** herdada pelos devices (04/11)
+- [ ] Coordenadas em todos os sites (POPs/torres) e cadastro dos devices (manual, em andamento)
+- [ ] Topologia pai/filho não documentada → Network Map e dependências ficam para quando houver conexões no NetBox
 
 **Novos serviços (depois)**
 - [ ] Grafana (CT leve, plugin do Zabbix com usuário somente leitura, publicado no proxy) — **planejado (04/11)**

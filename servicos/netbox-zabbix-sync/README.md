@@ -75,6 +75,35 @@ sed -i 's/^    sanitized_data = data.copy()$/    import copy\n    sanitized_data
 ```
 > Reaplicar após qualquer `pip install -U netbox-zabbix-sync`.
 
+## Inventário e localização (Geomap)
+
+O inventário do host no Zabbix também vem do NetBox, incluindo as coordenadas usadas pelo widget **Geomap** (mapa geográfico com a cor do problema mais grave de cada host).
+
+Acrescentado no **final** do `config.py` (com `cat >> ... << 'EOF'`):
+```python
+inventory_sync = True
+inventory_mode = "manual"
+device_inventory_map = {
+    "site/latitude": "location_lat",
+    "site/longitude": "location_lon",
+    "site/name": "location",
+    "device_type/manufacturer/name": "vendor",
+    "device_type/model": "type",
+    "serial": "serialno_a",
+}
+```
+- **Coordenada no site** (POP/torre): os devices herdam. Com `"latitude"` o sync lê só o campo do **device**; não há reserva device → site — é uma origem por campo. Uma coordenada por site dá menos trabalho e basta para o mapa (devices no mesmo ponto são agrupados no Geomap).
+- `inventory_mode = "manual"`: no `"automatic"` os itens dos templates podem sobrescrever os campos.
+- O NetBox manda também aqui: inventário editado à mão no Zabbix é sobrescrito.
+- Validar antes de rodar: `/opt/netbox-zabbix-sync/bin/python -m py_compile /etc/netbox-zabbix-sync/config.py`.
+- Log: `NetBox lookup for 'site/latitude' returned an empty value` = site sem coordenada (o host fica fora do mapa, mas continua monitorado).
+- Conferir no banco:
+  ```bash
+  su - postgres -c "psql -d zabbix -c \"SELECT h.host, i.inventory_mode, i.location_lat, i.location_lon, i.location FROM hosts h JOIN host_inventory i ON i.hostid = h.hostid ORDER BY h.host;\""
+  ```
+- Geomap: *Painel → Editar → Adicionar widget → Geomap*, filtrado pelos grupos `site/role`; provedor de mapa em *Administração → Geral → Mapas geográficos* (OpenStreetMap).
+- Topologia (enlaces pai/filho) não entra aqui: o Geomap mostra pontos. Network Map e dependências de triggers dependem das conexões cadastradas no NetBox.
+
 ## systemd
 
 [`netbox-zabbix-sync.service`](netbox-zabbix-sync.service) roda como usuário dinâmico sem privilégios e com sistema de arquivos somente leitura; [`netbox-zabbix-sync.timer`](netbox-zabbix-sync.timer) agenda a cada 15 minutos.
@@ -88,6 +117,7 @@ sed -i 's/^    sanitized_data = data.copy()$/    import copy\n    sanitized_data
 ## Operação
 
 - Novo equipamento só ICMP: Active + IP primário → tag `zabbix`.
+- Rodar na hora (sem esperar o timer): `systemctl start netbox-zabbix-sync.service`. Cada rodada percorre todos os devices do filtro. Device sem tag, sem status Active ou **sem IP primário** não aparece no log nem como erro — conferir por contagem (NetBox × Zabbix).
 - Novo equipamento SNMP: Active + IP primário → *local config context* completo → **depois** a tag `zabbix`.
 - Remover: mudar o status para Decommissioning/Inventory **antes** de tirar a tag; senão o host fica órfão no Zabbix.
 - O NetBox manda: template, grupos, interface e macros editados à mão no Zabbix são sobrescritos. Porta/community diferente → *local config context* do device.
