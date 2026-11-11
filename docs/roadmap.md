@@ -56,6 +56,15 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [ ] Repetir o teste de restauração periodicamente (ex.: a cada 3 meses, alternando o CT)
 - [x] Limpeza do HD antigo (backups e ISOs do servidor anterior)
 
+## Segundo host Proxmox (POP) — planejado (10/11)
+
+Host 24/7 (i7 10ª geração, 32 GB, RX 580) no POP principal do provedor; única carga fixa é uma VM com OBS (transmissão), o resto fica livre para o projeto.
+- [x] Desenho de rede: host na DMZ do roteador de borda (/30, sem VLAN, IP direto na porta), guests numa faixa própria, WireGuard em container próprio com NAT para o proxy na Oracle
+- [ ] Instalar com o novo endereçamento e firewall no mesmo padrão (DROP + `redes-admin`)
+- [ ] WireGuard + regras de acesso no roteador de borda
+- [ ] VM do OBS · backup (local + cópia criptografada no Drive)
+- [ ] Definir quais serviços do projeto rodam neste host
+
 ## Rede dos containers (saída para a internet)
 
 - Decisão: **só o Zabbix tem saída permanente** (ICMP/SNMP do backbone pelo NAT do IP público — os equipamentos só aceitam esse IP); os demais saem **apenas para atualizar** (apt, imagens Docker, modelos, npm/uv)
@@ -110,6 +119,8 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 
 - [x] Restaurado do servidor antigo, firewall `DOCKER-USER` e cron em modo CLI
 - [x] Publicado no proxy (Access List, APIs bloqueadas) com 2FA
+- [x] **GLPI-Agent nos PCs do domínio** (10/11): GPO com script de inicialização assinado (política `RemoteSigned`), MSI com hash conferido e fonte interna primeiro, SSL validado no domínio público ([guia](../servicos/glpi/README.md#glpi-agent-nos-pcs-do-domínio))
+- [ ] Conferir a chegada dos PCs no inventário
 - [ ] HTTPS interno (tokens ainda em HTTP dentro da VLAN)
 - [ ] Avaliar `cron_limit` 5 → 10
 - [ ] Trocar as senhas do MariaDB
