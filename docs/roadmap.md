@@ -56,14 +56,19 @@ Separado por sistema. Cada seção tem o que já foi feito e o que falta.
 - [ ] Repetir o teste de restauração periodicamente (ex.: a cada 3 meses, alternando o CT)
 - [x] Limpeza do HD antigo (backups e ISOs do servidor anterior)
 
-## Segundo host Proxmox (POP) — planejado (10/11)
+## Segundo host Proxmox (POP) — em migração (13–16/11)
 
-Host 24/7 (i7 10ª geração, 32 GB, RX 580) no POP principal do provedor; única carga fixa é uma VM com OBS (transmissão), o resto fica livre para o projeto.
-- [x] Desenho de rede: host na DMZ do roteador de borda (/30, sem VLAN, IP direto na porta), guests numa faixa própria, WireGuard em container próprio com NAT para o proxy na Oracle
-- [ ] Instalar com o novo endereçamento e firewall no mesmo padrão (DROP + `redes-admin`)
-- [ ] WireGuard + regras de acesso no roteador de borda
-- [ ] VM do OBS · backup (local + cópia criptografada no Drive)
-- [ ] Definir quais serviços do projeto rodam neste host
+Host 24/7 (i7-10700, 32 GB, RX 580) no POP principal do provedor. Planejado em 10/11 só para a VM do OBS; em 13/11 passou a receber **os CTs/VMs do projeto**.
+- [x] Desenho de rede: host na DMZ do roteador de borda (/30, sem VLAN, IP direto na porta, IP privado mascarado pelo NAT da DMZ)
+- [x] Decisão (13/11): migram **todos os CTs/VMs, exceto o Ollama (CT 102)**, que depende da RTX 3060; HD e SSD de dados também passam para o host novo; mesmo padrão de VLANs (1050 gerência, 1010 serviços — 10.0.10.0/24 mantida), muda só o IP do host
+- [x] Proxmox 9.2 instalado (15/11) e rede criada no roteador da DMZ
+- [x] Decisão (15/11): WireGuard até o proxy da Oracle em **CT próprio** (`wg-gw`, CT 100, 10.0.10.254, VLAN 1010), reaproveitando a configuração do túnel; o túnel Oracle ↔ MikroTik será desfeito e o acesso WireGuard do notebook pela VPN do hEX será desligado
+- [x] Migração funcionando (15/11): serviços publicados ok
+- [x] Host levado fisicamente ao POP (16/11)
+- [ ] Novo caminho de administração do host a partir do POP (o acesso antigo deixou de alcançá-lo)
+- [ ] OpenClaw (VM 107) **offline por enquanto** — depende do Ollama no host antigo; definir como reconectar
+- [ ] Host antigo: desativar por um tempo e trocar a faixa de IP para não conflitar com a da DMZ
+- [ ] Firewall no mesmo padrão (DROP + `redes-admin`), jobs de backup (local + cópia criptografada no Drive) e VM do OBS no host novo
 
 ## Rede dos containers (saída para a internet)
 
