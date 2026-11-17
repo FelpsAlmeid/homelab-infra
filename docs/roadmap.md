@@ -69,7 +69,8 @@ Host 24/7 (i7-10700, 32 GB, RX 580) no POP principal do provedor, na DMZ do rote
 - [ ] OpenClaw (VM 107) sem LLM até o Ollama voltar — definir também o novo acesso ao painel (VPN do notebook desativada)
 - [ ] Limpeza: peer antigo no proxy da Oracle e restos da faixa do túnel antigo; host antigo fora do cluster de storage, com faixa nova na VLAN 1010
 - [ ] Revisar `redes-admin` com a origem real a partir do POP
-- [ ] VM do OBS: IOMMU + passthrough da RX 580
+- [x] VM do OBS (16/11): host levado ao POP, IOMMU + VFIO, VM 109 Windows 11 com a RX 580 em passthrough e primeira live no ar — [servicos/obs-lives](../servicos/obs-lives/README.md)
+- [ ] VM 109: backup diário, teste do reset bug da RX 580, backup das cenas do OBS e monitoramento no Zabbix
 
 ## Rede dos containers (saída para a internet)
 

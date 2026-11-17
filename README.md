@@ -38,10 +38,10 @@ Detalhes em [docs/arquitetura.md](docs/arquitetura.md).
 
 | Pasta | Conteúdo |
 |---|---|
-| [`proxmox/host`](proxmox/host) | Rede com VLANs, IPv6 desativado, driver NVIDIA com Secure Boot, SSD de dados e [backup](proxmox/host/backup) |
+| [`proxmox/host`](proxmox/host) | Rede com VLANs, IPv6 desativado, driver NVIDIA com Secure Boot, passthrough de GPU AMD, SSD de dados e [backup](proxmox/host/backup) |
 | [`proxmox/lxc`](proxmox/lxc) | Configurações de referência dos containers |
 | [`proxmox/firewall`](proxmox/firewall) | IPSets e regras do firewall do Proxmox |
-| [`servicos/`](servicos) | Ollama, Samba, NetBox, GLPI, Zabbix, OpenClaw, n8n, a sincronização NetBox → Zabbix e a integração Zabbix → GLPI |
+| [`servicos/`](servicos) | Ollama, Samba, OBS (VM das lives), NetBox, GLPI, Zabbix, OpenClaw, n8n, a sincronização NetBox → Zabbix e a integração Zabbix → GLPI |
 | [`oracle/`](oracle) | Proxy público: Nginx Proxy Manager, WireGuard, firewall da instância |
 | [`mikrotik/`](mikrotik) | Ponta local do túnel e regras de firewall |
 | [`docs/`](docs) | Arquitetura, segurança, lições aprendidas e roadmap |

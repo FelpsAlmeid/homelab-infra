@@ -8,3 +8,13 @@
    create mask = 0664
    directory mask = 0775
    veto files = /lost+found/
+
+# Só para a VM do OBS (usuário Samba sem login; firewall do CT libera 445 só do IP da VM)
+[lives]
+   path = /srv/smb/lives
+   browseable = yes
+   read only = no
+   valid users = obs <usuario>
+   force user = <usuario>
+   create mask = 0664
+   directory mask = 0775
