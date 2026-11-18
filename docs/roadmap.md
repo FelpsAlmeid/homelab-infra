@@ -71,6 +71,15 @@ Host 24/7 (i7-10700, 32 GB, RX 580) no POP principal do provedor, na DMZ do rote
 - [ ] Revisar `redes-admin` com a origem real a partir do POP
 - [x] VM do OBS (16/11): host levado ao POP, IOMMU + VFIO, VM 109 Windows 11 com a RX 580 em passthrough e primeira live no ar — [servicos/obs-lives](../servicos/obs-lives/README.md)
 - [ ] VM 109: backup diário, teste do reset bug da RX 580, backup das cenas do OBS e monitoramento no Zabbix
+- [x] Host antigo (`servidor`) formatado com Windows (17/11): deixou de ser host Proxmox
+- [ ] VM 109: playlist com músicas comerciais por período do dia (manhã sem remix) e pedidos de música por QR Code só na rede interna (decididos em 17/11)
+
+## Home page do suporte (em planejamento, 17/11)
+
+Página inicial do navegador dos PCs do suporte, para achar a causa de um problema rápido.
+- [ ] Alertas ativos de fibra/CTOs puxados do n8n (Postgres `noc`) — conferir se o banco guarda o status online/offline
+- [ ] Alertas ativos dos rádios (hoje monitorados só no UNMS Legacy, ainda fora do Zabbix)
+- [ ] Acesso pelo IP interno com certificado emitido pela CA do AD (página segura nas máquinas do domínio)
 
 ## Rede dos containers (saída para a internet)
 
@@ -157,6 +166,7 @@ Host 24/7 (i7-10700, 32 GB, RX 580) no POP principal do provedor, na DMZ do rote
 - [x] Ollama em LXC não privilegiado com a GPU
 - [x] ~~Open WebUI publicado com HTTPS~~ → desativado em 30/10 (CT 103 parado, fora do backup e do proxy; apagar na Consolidação)
 - [x] RAM do CT 102 conferida (30/10): 8 GB, modelo 100% na GPU, uso real ~2 GB
+- [ ] Ollama (CT 102) sem host desde 17/11 — o `servidor` foi formatado com Windows; OpenClaw segue sem LLM
 
 ## n8n (orquestração do NOC)
 

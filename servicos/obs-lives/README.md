@@ -45,3 +45,5 @@ qm create 109 --name obs-lives --ostype win11 --machine q35 --bios ovmf \
 - [ ] Exportar coleção de cenas e perfil do OBS para o compartilhamento `lives`
 - [ ] Rotina de Windows Update fora do horário das lives
 - [ ] Monitorar a VM no Zabbix (ICMP + agente) e o RTMP de saída
+- [ ] Playlist com músicas comerciais separadas por período do dia (manhã sem remix) — o canal da TV Play é privado (17/11)
+- [ ] Pedidos de música por QR Code, só na rede interna: primeiro nome de quem pediu, fila de até 10, 1 pedido por pessoa a cada 10 min, valendo também na tela das câmeras (17/11)
