@@ -56,7 +56,7 @@ Detalhes em [docs/arquitetura.md](docs/arquitetura.md).
 
 ## Stack
 
-Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · OpenClaw · n8n · Open WebUI · NetBox · GLPI · Zabbix · Samba · WireGuard · Nginx Proxy Manager · Let's Encrypt · Oracle Cloud (ARM) · MikroTik RouterOS 7
+Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · OpenClaw · n8n · OBS Studio · Streamlink · Open WebUI · NetBox · GLPI · Zabbix · Samba · WireGuard · Nginx Proxy Manager · Let's Encrypt · Oracle Cloud (ARM) · MikroTik RouterOS 7
 
 ## Status
 
@@ -78,8 +78,26 @@ Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · OpenClaw · n8n · Open 
 | Backup local + cópia criptografada fora do PC | ✅ |
 | n8n orquestrando o resumo do NOC para o agente (MCP, tokens próprios somente leitura) | ✅ |
 | Checagem semanal de versão/avisos do n8n no Zabbix | ✅ |
+| Segundo host Proxmox no POP (24/7) com os CTs/VMs migrados e túnel WireGuard em CT próprio | ✅ |
+| Jobs de backup recriados no host do POP | 🔄 |
+| VM do OBS (Windows 11, RX 580 em passthrough) transmitindo 24/7 para o CDN de TV | ✅ |
+| Lives: grade automática, música por período, tela "Sem Sinal" e retransmissão por link | ✅ |
+| Pedidos de música por QR, painel admin com 2FA e página em tempo real ([CT 111](servicos/pedidos/README.md)) | ✅ |
+| Recados moderados e enquetes nas lives (F4) | ⏳ |
+| IA local de volta (host antigo formatado em 17/11; agente sem LLM) | ⏳ |
+| Grafana para o NOC | ⏳ |
 
-Roadmap por sistema (Proxmox, Zabbix, NetBox, GLPI, integrações, proxy e IA) em [docs/roadmap.md](docs/roadmap.md).
+Legenda: ✅ concluído · 🔄 em andamento · ⏳ pendente. Atualizado em 19/11/2026.
+
+Roadmap por sistema (Proxmox, Zabbix, NetBox, GLPI, integrações, proxy, IA, n8n e lives) em [docs/roadmap.md](docs/roadmap.md).
+
+### Próximos passos
+
+1. Lives: usuário visualizador do marketing no painel; validar a saída automática do Jornal, a Missa de domingo e o failover das câmeras; depois recados e enquetes (F4).
+2. Host do POP: persistir a regra `DOCKER-USER` do GLPI e recriar os jobs de backup (incluindo VM 109 e CT 111).
+3. Definir onde o LLM do agente volta a rodar.
+4. Zabbix em escala (~450 dispositivos): dependências/severidades, filtro de interfaces no LLD e importação CSV no NetBox.
+5. Grafana; depois Consolidação (testes de segurança e de uso).
 
 ## Telas
 

@@ -216,6 +216,7 @@ Rodada de testes de segurança e de uso no dia a dia, antes de considerar o proj
 
 ## Próximo passo
 
+0. **Lives / TV Play (18/11):** usuário visualizador do marketing; validar saída do Jornal, Missa de domingo e failover das câmeras; depois F4 (recados e enquetes). No host do POP: `DOCKER-USER` do GLPI e jobs de backup; definir onde o LLM do agente volta a rodar.
 1. **Zabbix em escala (~450 dispositivos):** dependências/severidades, filtro de interfaces no LLD e importação CSV no NetBox (ICMP padrão e dimensionamento do CT 104 concluídos em 30/10).
 2. Política de saída dos containers (egress) — o Zabbix vai precisar alcançar as novas redes.
 3. ~~Primeiro caso de uso N2~~ (feito via n8n, 03/11) · ~~canal Discord~~ (03/11); ~~alertas de fibra no Discord~~ (03/11, direto pelo n8n); próximo no agente: resumo em horário fixo no canal e a ferramenta `cto_alerta`.
