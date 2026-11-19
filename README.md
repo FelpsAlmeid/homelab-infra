@@ -2,7 +2,7 @@
 
 Homelab com **IA local na GPU**, serviços de NOC (IPAM, chamados e monitoramento) e **publicação segura na internet** sem abrir portas na rede de casa.
 
-Montado em um PC comum com Proxmox VE, uma RTX 3060 e uma instância gratuita da Oracle Cloud como porta de entrada pública.
+Começou num PC comum com Proxmox VE e uma RTX 3060; desde 15/11/2026 roda num host 24/7 no POP do provedor (i7-10700, 32 GB, RX 580), com uma instância gratuita da Oracle Cloud como porta de entrada pública. Também transmite as lives da TV do provedor (OBS) com interação do público por QR Code.
 
 > Este repositório guarda configurações de referência, scripts e a documentação das decisões. Nenhum segredo é versionado: senhas, chaves e tokens ficam fora daqui (veja [Segurança](docs/seguranca.md)).
 
@@ -12,24 +12,37 @@ Montado em um PC comum com Proxmox VE, uma RTX 3060 e uma instância gratuita da
 flowchart LR
     U[Usuário] -->|HTTPS| D[DNS do domínio]
     D --> O["Oracle Cloud (ARM)<br/>Nginx Proxy Manager + Let's Encrypt"]
-    O -.->|túnel WireGuard dedicado| M[MikroTik hEX]
-    N[Notebook admin] -.->|VPN WireGuard| M
+    ADM[Rede da empresa / admin] --> M["MikroTik de borda<br/>DMZ"]
     M --> P
 
-    subgraph P["Proxmox VE · RTX 3060 12 GB"]
-      W["CT 103 · Open WebUI"] --> L["CT 102 · Ollama (GPU)"]
-      NB["CT 105 · NetBox"]
-      G["CT 106 · GLPI"]
-      Z["CT 104 · Zabbix"]
-      S["CT 101 · Samba"]
-      A["VM 107 · OpenClaw (agente)"] -->|"API nativa"| L
-      A -->|"MCP"| N8["CT 108 · n8n (orquestração)"]
-      N8 -->|"leitura"| Z & NB & G
-      HD[("HD de backup<br/>vzdump diário + semanal")]
-      S & L & Z & NB & G & N8 & A -.-> HD
+    subgraph P["Proxmox VE · host do POP 24/7 · i7-10700 · 32 GB · RX 580"]
+      WG["CT 100 · wg-gw<br/>WireGuard + masquerade"]
+      S["CT 101 · Samba + Syncthing"]
+
+      subgraph NOC["NOC"]
+        A["VM 107 · OpenClaw (agente)"] -->|MCP| N8["CT 108 · n8n"]
+        N8 -->|leitura| Z["CT 104 · Zabbix"] & NB["CT 105 · NetBox"] & G["CT 106 · GLPI"]
+        NB -->|sync| Z
+        Z -->|chamados| G
+      end
+
+      subgraph LIVES["Lives TV Play"]
+        OBS["VM 109 · OBS (Windows 11)<br/>RX 580 em passthrough"]
+        PE["CT 111 · pedidos<br/>painel 2FA + página em tempo real"]
+        PE <-->|"SSE · token"| OBS
+      end
+
+      S -->|"pasta lives"| OBS
     end
 
-    HD -->|"rclone crypt · semanal"| GD[("Google Drive<br/>conta dedicada")]
+    O <-.->|"túnel WireGuard dedicado"| WG
+    WG --> NOC
+    CAM["Câmeras IP"] -->|RTSP| OBS
+    PUB["Público (rede interna)"] -->|QR Code| PE
+    OBS -->|RTMP| TV["CDN de TV do provedor"]
+    A -.->|"API nativa · sem host desde 17/11"| L["CT 102 · Ollama (GPU)<br/>a realocar"]
+    P -.->|"vzdump · jobs a recriar"| HD[("HD de backup")]
+    HD -.->|"rclone crypt · semanal"| GD[("Google Drive<br/>conta dedicada")]
 ```
 
 Detalhes em [docs/arquitetura.md](docs/arquitetura.md).
@@ -41,7 +54,7 @@ Detalhes em [docs/arquitetura.md](docs/arquitetura.md).
 | [`proxmox/host`](proxmox/host) | Rede com VLANs, IPv6 desativado, driver NVIDIA com Secure Boot, passthrough de GPU AMD, SSD de dados e [backup](proxmox/host/backup) |
 | [`proxmox/lxc`](proxmox/lxc) | Configurações de referência dos containers |
 | [`proxmox/firewall`](proxmox/firewall) | IPSets e regras do firewall do Proxmox |
-| [`servicos/`](servicos) | Ollama, Samba, OBS (VM das lives), NetBox, GLPI, Zabbix, OpenClaw, n8n, a sincronização NetBox → Zabbix e a integração Zabbix → GLPI |
+| [`servicos/`](servicos) | Ollama, Samba, OBS (VM das lives), [pedidos](servicos/pedidos) (QR Code + painel admin), NetBox, GLPI, Zabbix, OpenClaw, n8n, Discord, a sincronização NetBox → Zabbix e a integração Zabbix → GLPI |
 | [`oracle/`](oracle) | Proxy público: Nginx Proxy Manager, WireGuard, firewall da instância |
 | [`mikrotik/`](mikrotik) | Ponta local do túnel e regras de firewall |
 | [`docs/`](docs) | Arquitetura, segurança, lições aprendidas e roadmap |
