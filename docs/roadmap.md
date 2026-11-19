@@ -72,7 +72,16 @@ Host 24/7 (i7-10700, 32 GB, RX 580) no POP principal do provedor, na DMZ do rote
 - [x] VM do OBS (16/11): host levado ao POP, IOMMU + VFIO, VM 109 Windows 11 com a RX 580 em passthrough e primeira live no ar — [servicos/obs-lives](../servicos/obs-lives/README.md)
 - [ ] VM 109: backup diário, teste do reset bug da RX 580, backup das cenas do OBS e monitoramento no Zabbix
 - [x] Host antigo (`servidor`) formatado com Windows (17/11): deixou de ser host Proxmox
-- [ ] VM 109: playlist com músicas comerciais por período do dia (manhã sem remix) e pedidos de música por QR Code só na rede interna (decididos em 17/11)
+- [x] VM 109: playlist com músicas comerciais por período do dia (manhã sem remix) e pedidos de música por QR Code só na rede interna (decididos em 17/11, em produção 17–18/11)
+
+## Lives / TV Play — sistema de interação (18/11)
+
+Grade automática, música por período, tela "Sem Sinal" e retransmissão por link na [VM obs-lives](../servicos/obs-lives/README.md); pedidos por QR e painel admin no [CT 111 pedidos](../servicos/pedidos/README.md).
+- [x] Retransmissão por link pelo painel, testada com live real (18/11)
+- [x] F1 painel admin (HTTPS, 2FA, papéis, auditoria) · F2 página pública em tempo real (SSE) · F3 agentes com token no cabeçalho + SSE (18/11)
+- [ ] Usuário visualizador do marketing + certificado no PC dele
+- [ ] Validar saída automática do Jornal, Missa de domingo e failover das câmeras
+- [ ] F4 recados moderados e enquetes · F5 backup do CT 111, alertas no Zabbix e métricas no Grafana
 
 ## Home page do suporte (em planejamento, 17/11)
 

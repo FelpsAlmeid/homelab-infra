@@ -38,6 +38,16 @@ qm create 109 --name obs-lives --ostype win11 --machine q35 --bios ovmf \
 - Cenas: uma por câmera (mídia RTSP com decodificação por hardware) + cena `OVERLAY` aninhada (fonte de navegador com overlay e música; **uma única fonte**, senão a música toca em dobro) · transição stinger
 - Arquivos das lives (overlays, músicas, stinger) no compartilhamento `lives` do Samba, com usuário próprio — a VM não enxerga os outros compartilhamentos ([`smb.conf.example`](../samba/smb.conf.example))
 
+## Automação (16–18/11)
+
+- **Grade automática**: programas do YouTube puxados pelo **Streamlink CLI** (modo contínuo, servidor HTTP local por programa) disparado pelo Agendador de Tarefas; o OBS troca de cena pelo plugin **Advanced Scene Switcher** lendo um arquivo de estado ON/OFF (regex `\s*ON\s*` / `\s*OFF\s*`, "only when result changes"). Plugin `obs-streamlink` descartado (sem manutenção)
+- **Música por período do dia**: 4 pastas (madrugada, manhã, tarde, noite) com volumes diferentes; a playlist é gerada por script a partir das subpastas
+- **Tela "Sem Sinal"**: cena com "Voltamos em instantes", próximo programa da grade e relógio; câmeras como fonte VLC e macros que trocam para essa cena quando a câmera para e voltam quando ela reproduz
+- **Overlay de programas**: marca no canto + cartão "Você está assistindo" para Missa, Jornal e Retransmissão
+- **Retransmissão por link**: o link é colado no painel do serviço de [pedidos](../pedidos/README.md); um vigia na VM recebe o evento (SSE, com token no cabeçalho), sobe o Streamlink numa porta própria e grava o estado; macros fazem entrada/saída com stinger e a grade não entra por cima
+- Fontes de navegador por URL `file:///` (com "Arquivo local" o Chromium do OBS bloqueia acesso a IP privado); automação com o **Modo estúdio desligado**
+- Script de verificação geral (tarefas, vigia, overlays, serviço de pedidos) com saída OK/AVISO/FALHA, sem exibir o token
+
 ## Pendências
 
 - [ ] Testar desligar/ligar a VM sem Código 43 (reset bug)
@@ -45,5 +55,7 @@ qm create 109 --name obs-lives --ostype win11 --machine q35 --bios ovmf \
 - [ ] Exportar coleção de cenas e perfil do OBS para o compartilhamento `lives`
 - [ ] Rotina de Windows Update fora do horário das lives
 - [ ] Monitorar a VM no Zabbix (ICMP + agente) e o RTMP de saída
-- [ ] Playlist com músicas comerciais separadas por período do dia (manhã sem remix) — o canal da TV Play é privado (17/11)
-- [ ] Pedidos de música por QR Code, só na rede interna: primeiro nome de quem pediu, fila de até 10, 1 pedido por pessoa a cada 10 min, valendo também na tela das câmeras (17/11)
+- [x] Playlist com músicas comerciais separadas por período do dia (manhã sem remix) — o canal da TV Play é privado (17/11)
+- [x] Pedidos de música por QR Code, só na rede interna: primeiro nome de quem pediu, fila de até 10, 1 pedido por pessoa a cada 10 min, valendo também na tela das câmeras (17/11) — [servicos/pedidos](../pedidos/README.md)
+- [x] Retransmissão por link pelo painel, testada com live real (18/11)
+- [ ] Validar a saída automática do Jornal, a Missa de domingo e o failover das câmeras
