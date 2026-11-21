@@ -23,7 +23,7 @@ flowchart LR
 
 ## Configuração (resumo de `config.py`)
 
-- Filtro: tag `zabbix`, status ativo, com IP primário
+- Filtro: tag `zabbix` e IP primário (**sem** status — desde 21/11/2026; o status do NetBox decide o ciclo de vida do host, ver Operação)
 - Grupos de hosts: `site/role` (ex.: `POP Centro/Concentrador`)
 - Template: **config context** (`templates_config_context = True` e `templates_config_context_overrule = True` — o contexto prevalece sobre o campo do tipo)
 - Interface definida por **config context** no NetBox (veja abaixo); community pela macro `{$SNMP_COMMUNITY}`
@@ -117,9 +117,20 @@ device_inventory_map = {
 ## Operação
 
 - Novo equipamento só ICMP: Active + IP primário → tag `zabbix`.
-- Rodar na hora (sem esperar o timer): `systemctl start netbox-zabbix-sync.service`. Cada rodada percorre todos os devices do filtro. Device sem tag, sem status Active ou **sem IP primário** não aparece no log nem como erro — conferir por contagem (NetBox × Zabbix).
+- Rodar na hora (sem esperar o timer): `systemctl start netbox-zabbix-sync.service`. Cada rodada percorre todos os devices do filtro. Device sem tag ou **sem IP primário** não aparece no log nem como erro — conferir por contagem (NetBox × Zabbix): todo device com a tag e IP deve ter `zabbix_hostid`.
 - Novo equipamento SNMP: Active + IP primário → *local config context* completo → **depois** a tag `zabbix`.
-- Remover: mudar o status para Decommissioning/Inventory **antes** de tirar a tag; senão o host fica órfão no Zabbix.
+- **Ciclo de vida pelo status — manter a tag:**
+
+  | NetBox (com a tag `zabbix`) | Zabbix |
+  |---|---|
+  | Active + IP primário | host criado e monitorado |
+  | Offline · Planned · Staged · Failed | host **desativado** (`zabbix_device_disable`, padrão) |
+  | Decommissioning · Inventory | host **apagado** (`zabbix_device_removal`, padrão) |
+  | sem a tag | ignorado → host **órfão** |
+
+  Só funciona com o filtro **sem** `status`: com `"status": "active"` o device desativado nem é lido e o host continua ativo no Zabbix. Achar órfãos: device com `zabbix_hostid` e sem a tag → devolver a tag.
+- **Nome do device = nome técnico do host:** o Zabbix aceita só letras, números, espaço, `.`, `-` e `_`. Parênteses, `<` `>` ou acento → `Couldn't create ... Incorrect characters used for host name`; renomear no NetBox.
+- Entrada em massa: aplicar a tag por **lotes** (ex.: por POP), rodar o sync e conferir a contagem antes do próximo lote — sem dependências de triggers, cada host Down abre o próprio chamado.
 - O NetBox manda: template, grupos, interface e macros editados à mão no Zabbix são sobrescritos. Porta/community diferente → *local config context* do device.
 - **Nunca** crie uma segunda interface SNMP à mão: o sync para com `Multiple interfaces of the same type ... manual intervention required` e deixa de atualizar o host.
 - Conferir o valor real de uma macro secreta (o Zabbix só esconde na interface):

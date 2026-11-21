@@ -98,7 +98,7 @@ Headwind MDM Community na **VM 112** do host do POP, para os celulares Android (
 
 Página inicial do navegador dos PCs do suporte, para achar a causa de um problema rápido.
 - [ ] Alertas ativos de fibra/CTOs puxados do n8n (Postgres `noc`) — conferir se o banco guarda o status online/offline
-- [ ] Alertas ativos dos rádios (hoje monitorados só no UNMS Legacy, ainda fora do Zabbix)
+- [ ] Alertas ativos dos rádios — **rádios já no Zabbix (21/11)**; falta levar os alertas para a página
 - [ ] Acesso pelo IP interno com certificado emitido pela CA do AD (página segura nas máquinas do domínio)
 
 ## Rede dos containers (saída para a internet)
@@ -124,14 +124,17 @@ Página inicial do navegador dos PCs do suporte, para achar a causa de um proble
 
 **Expansão para ~450 dispositivos do provedor (~50 SNMP, ~400 ICMP)** — cadastro pelo NetBox, entrada no Zabbix pelo sync
 - [x] Template **padrão = ICMP Ping** para todo device com a tag `zabbix`; SNMP e templates específicos só por exceção no **contexto local** (`templates_config_context` + `overrule`, 30/10)
-- [ ] Importação em massa por CSV no NetBox
+- [x] Rádios do painel de monitoramento antigo no NetBox (290: rádios + ONUs de torre, site = torre, pai no custom field `uplink`) e no Zabbix (256 por ICMP, em 4 lotes por POP) — 21/11
+- [x] Filtro do sync sem `status`: o status do NetBox desativa/apaga o host (21/11)
+- [ ] Lote 2: switches e OLTs que são pais dos rádios, e o `uplink` restante
 - [ ] Dependências de triggers (equipamento atrás de POP/concentrador não alerta se o pai cair) e severidade por função, para não abrir dezenas de chamados no GLPI numa queda
 - [x] CT 104 dimensionado (30/10): 4 núcleos, 6 GB, 80 GB; `StartPingers=5` e caches em `zabbix_server.d/90-escala.conf`; PostgreSQL `shared_buffers` 1 GB
 - [ ] Decidir sobre a disponibilidade: o servidor é um PC com dual boot (no Windows = NOC sem monitoramento)
 - [x] Inventário do host vindo do NetBox (coordenadas, site, fabricante, modelo, serial) + widget **Geomap** (03–04/11)
 - [x] Coordenada **do site** herdada pelos devices (04/11)
-- [ ] Coordenadas em todos os sites (POPs/torres) e cadastro dos devices (manual, em andamento)
-- [ ] Topologia pai/filho não documentada → Network Map e dependências ficam para quando houver conexões no NetBox
+- [ ] Coordenadas em todos os sites (POPs/torres)
+- [x] Topologia pai/filho dos rádios importada da árvore do painel antigo (custom field `uplink`, 21/11)
+- [ ] Dependências de triggers a partir do `uplink`; Network Map depois
 
 **Novos serviços (depois)**
 - [ ] Grafana (CT leve, plugin do Zabbix com usuário somente leitura, publicado no proxy) — **planejado (04/11)**

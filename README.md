@@ -90,6 +90,7 @@ Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · OpenClaw · n8n · OBS S
 | NOC publicado no proxy (só IPs da empresa + MFA) | ✅ |
 | SNMP por equipamento via NetBox (porta/community) | ✅ |
 | Backbone completo no monitoramento | 🔄 |
+| Rádios do provedor no NetBox e no Zabbix (290 cadastrados, 256 monitorados) | ✅ |
 | Agente de IA (OpenClaw) em VM isolada, com Zabbix, NetBox e GLPI somente leitura | ✅ |
 | Backup local + cópia criptografada fora do PC | ✅ |
 | n8n orquestrando o resumo do NOC para o agente (MCP, tokens próprios somente leitura) | ✅ |
@@ -114,7 +115,7 @@ Roadmap por sistema (Proxmox, Zabbix, NetBox, GLPI, integrações, proxy, IA, n8
 2. Lives: usuário visualizador do marketing no painel; validar a saída automática do Jornal, a Missa de domingo e o failover das câmeras; depois recados e enquetes (F4).
 3. Host do POP: persistir a regra `DOCKER-USER` do GLPI e recriar os jobs de backup (incluindo VM 109, CT 111 e VM 112).
 4. Definir onde o LLM do agente volta a rodar.
-5. Zabbix em escala (~450 dispositivos): dependências/severidades, filtro de interfaces no LLD e importação CSV no NetBox.
+5. Zabbix em escala: switches/OLTs pais dos rádios no NetBox (lote 2), **dependências de triggers pelo `uplink`** e severidades, filtro de interfaces no LLD.
 6. Grafana; depois Consolidação (testes de segurança e de uso).
 
 ## Telas

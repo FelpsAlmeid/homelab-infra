@@ -83,3 +83,8 @@ Problemas reais encontrados na montagem e como foram resolvidos.
 | IXC (API) | Login com `id_caixa_ftth = 0` em clientes de fibra | O vínculo com CTO/porta fica na ONU (`radpop_radio_cliente_fibra`), não no login | Montar o mapa pela ONU (`id_login`) |
 | IXC (API) | "Sinal" da ONU desatualizado (leituras de meses atrás) | `sinal_rx`/`data_sinal` só mudam quando o IXC lê a OLT | Usar como contexto, nunca como indicador em tempo real |
 | Mapa de clientes | Centenas de "sem ONU" nos pendentes | Clientes de rádio entram na mesma base de logins | Filtrar por `tipo_conexao_mapa = 'F'` |
+| netbox-zabbix-sync | Device em Decommissioning (ou sem a tag) continua ativo no Zabbix | Filtro com `status: active` (ou tag retirada): o device nem é lido, então `zabbix_device_removal` nunca roda | Filtro só `tag` + IP primário; **manter a tag** e deixar o status desativar/apagar |
+| netbox-zabbix-sync | `Couldn't create ... Incorrect characters used for host name` | Nome do device com `(` `)` `<` `>` ou acento | Renomear no NetBox (letras, números, espaço, `.` `-` `_`) |
+| NetBox API (sessão do navegador) | `CSRF Failed: ... incorrect length` | Token CSRF não acessível pelo cookie | Usar o `csrfmiddlewaretoken` do HTML de uma página `/add/` |
+| NetBox API (lote) | Lote inteiro rejeitado com 400 | Um item inválido (ex.: IP duplicado com unicidade global) derruba o POST em lista | Resolver o item e reenviar só os restantes |
+| Painel web sem API | Inventário e árvore de dependências "só na interface" | Front SPA carrega tudo em memória | Ler o estado da página logada (somente leitura) em vez de clicar item a item; conferir a cópia por checksum |
