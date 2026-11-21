@@ -65,7 +65,7 @@ Host 24/7 (i7-10700, 32 GB, RX 580) no POP principal do provedor, na DMZ do rote
 - [x] Túnel com o proxy da Oracle em **CT próprio** (`wg-gw`, CT 100, 10.0.10.254, VLAN 1010) com masquerade — o NAT direto no host não funcionava com o firewall dos CTs; o túnel do roteador de borda saiu (15/11)
 - [ ] Persistir a regra `DOCKER-USER` do GLPI para a nova origem do túnel e conferir travas parecidas nos CTs 104/105/108
 - [ ] Testar n8n (IXC/Discord) e integrações por IP privado
-- [ ] Jobs de backup no host novo (diário 100, 101, 104–108) + cópia criptografada no Drive, checagem do n8n e teste de restauração
+- [ ] Jobs de backup no host novo (diário 100, 101, 104–109, 111, 112) + cópia criptografada no Drive, checagem do n8n e teste de restauração
 - [ ] OpenClaw (VM 107) sem LLM até o Ollama voltar — definir também o novo acesso ao painel (VPN do notebook desativada)
 - [ ] Limpeza: peer antigo no proxy da Oracle e restos da faixa do túnel antigo; host antigo fora do cluster de storage, com faixa nova na VLAN 1010
 - [ ] Revisar `redes-admin` com a origem real a partir do POP
@@ -82,6 +82,17 @@ Grade automática, música por período, tela "Sem Sinal" e retransmissão por l
 - [ ] Usuário visualizador do marketing + certificado no PC dele
 - [ ] Validar saída automática do Jornal, Missa de domingo e failover das câmeras
 - [ ] F4 recados moderados e enquetes · F5 backup do CT 111, alertas no Zabbix e métricas no Grafana
+
+## MDM dos celulares corporativos (em teste, 19/11)
+
+Headwind MDM Community na **VM 112** do host do POP, para os celulares Android (Samsung) da empresa — [servicos/mdm](../servicos/mdm/README.md).
+- [x] VM 112 (Ubuntu 24.04, Secure Boot) com hardening e firewall IN/OUT em DROP; Headwind 7.04 com Tomcat 10/Postgres/MQTT só em localhost, push por polling (19/11)
+- [x] Primeiro aparelho cadastrado por QR Code (Device Owner); **One UI + Headwind em modo de fundo, sem modo permissivo** validado — apps não liberados pedem a senha do administrador (19/11)
+- [x] Caminhos HTTP do agente levantados para a allowlist da produção (19/11)
+- [ ] Testar as restrições Android uma a uma (hotspot já aplicada); conferir Telefone/Configurações
+- [ ] Conta nominal + 2FA no painel, `admin` desativado
+- [ ] Produção: domínio, certificado, Nginx com allowlist, dst-nat 443, migração do aparelho de teste por "Novo URL do servidor"
+- [ ] Backup (VM + dump do Postgres), janela de manutenção, Zabbix, NetBox/GLPI e termo de uso (LGPD)
 
 ## Home page do suporte (em planejamento, 17/11)
 
@@ -216,6 +227,7 @@ Rodada de testes de segurança e de uso no dia a dia, antes de considerar o proj
 
 ## Próximo passo
 
+0. **MDM (19/11):** testar as restrições no aparelho de teste uma a uma → conta nominal + 2FA → produção (domínio, certificado, allowlist no Nginx, dst-nat).
 0. **Lives / TV Play (18/11):** usuário visualizador do marketing; validar saída do Jornal, Missa de domingo e failover das câmeras; depois F4 (recados e enquetes). No host do POP: `DOCKER-USER` do GLPI e jobs de backup; definir onde o LLM do agente volta a rodar.
 1. **Zabbix em escala (~450 dispositivos):** dependências/severidades, filtro de interfaces no LLD e importação CSV no NetBox (ICMP padrão e dimensionamento do CT 104 concluídos em 30/10).
 2. Política de saída dos containers (egress) — o Zabbix vai precisar alcançar as novas redes.

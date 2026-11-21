@@ -26,11 +26,12 @@
 | 108 | n8n | LXC não privilegiado (Docker) | SSD dedicado | Orquestração das consultas do agente; sem internet de saída |
 | 109 | obs-lives | **VM** Windows 11 | SSD local | OBS das lives, RX 580 em passthrough, RTMP para o CDN de TV ([guia](../servicos/obs-lives/README.md)) |
 | 111 | pedidos | LXC (Python) | SSD local | Pedidos por QR, retransmissão por link, painel admin HTTPS com 2FA ([guia](../servicos/pedidos/README.md)) |
+| 112 | mdm | **VM** Ubuntu 24.04 (Secure Boot) | SSD de dados | Headwind MDM dos celulares corporativos; Tomcat/Postgres/MQTT só em localhost, IN/OUT em DROP; em teste desde 19/11 ([guia](../servicos/mdm/README.md)) |
 
 ## Decisões
 
 - **Bridge VLAN-aware única (`vmbr0`)** com a tag definida em cada placa de rede dos guests: uma porta trunk no switch atende todas as VLANs.
-- **LXC em vez de VM** sempre que possível: menos overhead; VM só para o que executa código não confiável (o agente de IA).
+- **LXC em vez de VM** sempre que possível: menos overhead; VM só para o que executa código não confiável (o agente de IA) ou para serviço exposto que guarda dados pessoais (o MDM, VM 112 — isolamento de kernel por LGPD).
 - **GPU compartilhada por LXC** (driver no host, só userspace no container) em vez de passthrough para uma VM: o host mantém a saída de vídeo e vários containers podem usar a GPU. Exceção: a **RX 580 vai inteira para a VM do OBS** (IOMMU + VFIO), porque o OBS precisa de Windows e do encoder da placa.
 - **Host 24/7 no POP (15/11):** todos os CTs/VMs migrados mantendo a faixa `10.0.10.0/24`; o host fica na DMZ do roteador de borda e só a origem de administração alcança a gerência.
 - **WireGuard num CT próprio (`wg-gw`)**, nunca no host: o NAT direto no host não convivia com o firewall dos CTs; o CT faz masquerade e os serviços veem uma origem única.
@@ -53,5 +54,5 @@ flowchart LR
 
 - Dois locais além do disco do sistema: outro disco no mesmo PC e a nuvem.
 - Conta do Drive dedicada (grupo familiar do Google One) com `scope=drive.file`: o token não alcança a conta pessoal.
-- ⚠️ No host do POP os jobs ainda **não foram recriados** (pendência de 15/11); o desenho acima é o alvo, agora incluindo CT 100, VM 109 e CT 111.
+- ⚠️ No host do POP os jobs ainda **não foram recriados** (pendência de 15/11); o desenho acima é o alvo, agora incluindo CT 100, VM 109, CT 111 e VM 112 (+ dump diário do Postgres do MDM).
 - Detalhes e restauração em [`proxmox/host/backup`](../proxmox/host/backup/README.md).
