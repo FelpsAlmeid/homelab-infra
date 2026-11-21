@@ -126,6 +126,7 @@ Página inicial do navegador dos PCs do suporte, para achar a causa de um proble
 - [x] Template **padrão = ICMP Ping** para todo device com a tag `zabbix`; SNMP e templates específicos só por exceção no **contexto local** (`templates_config_context` + `overrule`, 30/10)
 - [x] Rádios do painel de monitoramento antigo no NetBox (290: rádios + ONUs de torre, site = torre, pai no custom field `uplink`) e no Zabbix (256 por ICMP, em 4 lotes por POP) — 21/11
 - [x] Filtro do sync sem `status`: o status do NetBox desativa/apaga o host (21/11)
+- [x] Conferência com o UNMS Legacy (fonte da verdade): coordenadas de 7 torres, modelo de 62 rádios, site de 30, MAC em 204 interfaces `mgmt` e 6 rádios que faltavam (21/11)
 - [ ] Lote 2: switches e OLTs que são pais dos rádios, e o `uplink` restante
 - [ ] Dependências de triggers (equipamento atrás de POP/concentrador não alerta se o pai cair) e severidade por função, para não abrir dezenas de chamados no GLPI numa queda
 - [x] CT 104 dimensionado (30/10): 4 núcleos, 6 GB, 80 GB; `StartPingers=5` e caches em `zabbix_server.d/90-escala.conf`; PostgreSQL `shared_buffers` 1 GB
