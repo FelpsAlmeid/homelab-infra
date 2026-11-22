@@ -104,6 +104,26 @@ device_inventory_map = {
 - Geomap: *Painel → Editar → Adicionar widget → Geomap*, filtrado pelos grupos `site/role`; provedor de mapa em *Administração → Geral → Mapas geográficos* (OpenStreetMap).
 - Topologia (enlaces pai/filho) não entra aqui: o Geomap mostra pontos. Network Map e dependências de triggers dependem das conexões cadastradas no NetBox.
 
+## Macros do host vindas do NetBox (licença com renovação manual)
+
+Equipamentos com licença renovada manualmente (ex.: rádios Wi2Be, a cada 90 dias) recebem o alerta pelo Zabbix, com a data mantida no NetBox:
+
+- **NetBox:** custom fields de Device (grupo Zabbix) `licenca_vencimento` (data) e `licenca_periodo_dias` (inteiro); contexto local do device com `{"zabbix":{"templates":["ICMP Ping","Licenca - Vencimento"]}}` — o local **substitui** a lista do global, por isso repete o ICMP Ping.
+- **Sync:** `usermacro_sync = "full"` e o mapa **completo** — o `device_usermacro_map` do config substitui o padrão, então as 4 macros padrão precisam estar nele, e só pode haver **um** mapa no arquivo:
+  ```python
+  device_usermacro_map = {
+      "serial": "{$HW_SERIAL}",
+      "role/name": "{$DEV_ROLE}",
+      "url": "{$NB_URL}",
+      "id": "{$NB_ID}",
+      "custom_fields/licenca_vencimento": "{$LICENCA.VENCE}"
+  }
+  ```
+  Hosts sem o campo geram só `INFO ... returned an empty value ... skipping`.
+- **Zabbix:** template [`Licenca - Vencimento`](../zabbix/templates/licenca-vencimento.yaml) — item Script (1 h) com os dias restantes até `{$LICENCA.VENCE}` e triggers Aviso (15 dias), Alta (3) e Desastre (vencida), com dependência entre elas.
+- **Renovação:** atualizar a data no NetBox; o alerta some na próxima rodada do sync + coleta.
+- Conferir: `su - postgres -c "psql -d zabbix -tAc \"select h.host, r.state, r.error from items i join hosts h on h.hostid=i.hostid left join item_rtdata r on r.itemid=i.itemid where i.key_='licenca.dias';\""` (no 7.0 o estado do item fica em `item_rtdata`).
+
 ## systemd
 
 [`netbox-zabbix-sync.service`](netbox-zabbix-sync.service) roda como usuário dinâmico sem privilégios e com sistema de arquivos somente leitura; [`netbox-zabbix-sync.timer`](netbox-zabbix-sync.timer) agenda a cada 15 minutos.

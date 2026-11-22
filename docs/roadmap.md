@@ -127,6 +127,9 @@ Página inicial do navegador dos PCs do suporte, para achar a causa de um proble
 - [x] Rádios do painel de monitoramento antigo no NetBox (290: rádios + ONUs de torre, site = torre, pai no custom field `uplink`) e no Zabbix (256 por ICMP, em 4 lotes por POP) — 21/11
 - [x] Filtro do sync sem `status`: o status do NetBox desativa/apaga o host (21/11)
 - [x] Conferência com o UNMS Legacy (fonte da verdade): coordenadas de 7 torres, modelo de 62 rádios, site de 30, MAC em 204 interfaces `mgmt` e 6 rádios que faltavam (21/11)
+- [x] IPAM organizado: prefixos de gerência dos rádios (2 containers /16 + 30 /24 + /30 de PTP), plataforma em 240 devices, IX.br como circuito (dados do PeeringDB), torres sem uso aposentadas (21/11)
+- [x] Alerta de vencimento de licença (renovação manual) — campo no NetBox → macro pelo sync → template Script no Zabbix (21/11)
+- [ ] NetBox: prefixos das faixas 10.x restantes, organização dos sites incompletos, circuitos de trânsito, VLANs nas interfaces e cabos do backbone
 - [ ] Lote 2: switches e OLTs que são pais dos rádios, e o `uplink` restante
 - [ ] Dependências de triggers (equipamento atrás de POP/concentrador não alerta se o pai cair) e severidade por função, para não abrir dezenas de chamados no GLPI numa queda
 - [x] CT 104 dimensionado (30/10): 4 núcleos, 6 GB, 80 GB; `StartPingers=5` e caches em `zabbix_server.d/90-escala.conf`; PostgreSQL `shared_buffers` 1 GB

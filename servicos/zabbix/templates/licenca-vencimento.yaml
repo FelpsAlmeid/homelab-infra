@@ -1,0 +1,84 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+    - uuid: 7df96b18c230490a9a0a9e2307226338
+      name: Templates
+  templates:
+    - uuid: 2e88c7f6cec642bda9f50a221caf0867
+      template: 'Licenca - Vencimento'
+      name: 'Licenca - Vencimento'
+      description: |
+        Alerta de vencimento de licença com renovação manual (ex.: rádios Wi2Be, 90 dias).
+        A data vem do NetBox: campo "Vencimento da licença" (licenca_vencimento) -> macro {$LICENCA.VENCE} pelo netbox-zabbix-sync.
+        Renovou? Atualize a data no NetBox; o alerta some na próxima rodada do sync + coleta (até 1 h).
+      groups:
+        - name: Templates
+      items:
+        - uuid: c12491870f0949e89576d91b08275c70
+          name: 'Licença: dias até o vencimento'
+          type: SCRIPT
+          key: licenca.dias
+          delay: 1h
+          value_type: FLOAT
+          units: dias
+          params: |
+            var p = JSON.parse(value);
+            var v = p.vence;
+            if (!v || v.charAt(0) === '{') {
+                throw 'Macro {$LICENCA.VENCE} vazia - preencher "Vencimento da licença" no NetBox';
+            }
+            var t = Date.parse(v + 'T00:00:00-03:00');
+            if (isNaN(t)) {
+                throw 'Data inválida em {$LICENCA.VENCE}: ' + v + ' (formato AAAA-MM-DD)';
+            }
+            return Math.floor((t - Date.now()) / 86400000);
+          description: 'Dias restantes até {$LICENCA.VENCE} (AAAA-MM-DD, fuso America/Fortaleza). Negativo = vencida.'
+          parameters:
+            - name: vence
+              value: '{$LICENCA.VENCE}'
+          tags:
+            - tag: component
+              value: licenca
+          triggers:
+            - uuid: b3f0b4d761eb4f02a667d4c110d68e3a
+              expression: 'last(/Licenca - Vencimento/licenca.dias)<=0'
+              name: 'Licença VENCIDA em {HOST.NAME} - renovar agora'
+              priority: DISASTER
+              description: 'A licença venceu em {$LICENCA.VENCE}. Solicitar a renovação e atualizar a data no NetBox.'
+              tags:
+                - tag: scope
+                  value: availability
+            - uuid: d91f459ddb5a468886c62e2f1bdb033c
+              expression: 'last(/Licenca - Vencimento/licenca.dias)<={$LICENCA.ALTA}'
+              name: 'Licença de {HOST.NAME} vence em {ITEM.LASTVALUE1}'
+              priority: HIGH
+              description: 'Vence em {$LICENCA.VENCE}. Solicitar a renovação.'
+              dependencies:
+                - name: 'Licença VENCIDA em {HOST.NAME} - renovar agora'
+                  expression: 'last(/Licenca - Vencimento/licenca.dias)<=0'
+              tags:
+                - tag: scope
+                  value: availability
+            - uuid: ac002be216e741adaf78561c2078520d
+              expression: 'last(/Licenca - Vencimento/licenca.dias)<={$LICENCA.AVISO}'
+              name: 'Licença de {HOST.NAME} vence em {ITEM.LASTVALUE1}'
+              priority: WARNING
+              description: 'Vence em {$LICENCA.VENCE}. Programar a solicitação da renovação.'
+              dependencies:
+                - name: 'Licença de {HOST.NAME} vence em {ITEM.LASTVALUE1}'
+                  expression: 'last(/Licenca - Vencimento/licenca.dias)<={$LICENCA.ALTA}'
+              tags:
+                - tag: scope
+                  value: notice
+      macros:
+        - macro: '{$LICENCA.ALTA}'
+          value: '3'
+          description: 'Dias antes do vencimento para alerta Alta'
+        - macro: '{$LICENCA.AVISO}'
+          value: '15'
+          description: 'Dias antes do vencimento para Aviso'
+        - macro: '{$LICENCA.VENCE}'
+          description: 'Data de vencimento (AAAA-MM-DD). Preenchida pelo sync a partir do NetBox.'
+      tags:
+        - tag: class
+          value: licenca
