@@ -2,7 +2,7 @@
 
 Homelab com **IA local na GPU**, serviços de NOC (IPAM, chamados e monitoramento) e **publicação segura na internet** sem abrir portas na rede de casa.
 
-Começou num PC comum com Proxmox VE e uma RTX 3060; desde 15/11/2026 roda num host 24/7 no POP do provedor (i7-10700, 32 GB, RX 580), com uma instância gratuita da Oracle Cloud como porta de entrada pública. Também transmite as lives da TV do provedor (OBS) com interação do público por QR Code e, em teste, gerencia os celulares corporativos (MDM).
+Começou num PC comum com Proxmox VE e uma RTX 3060; desde 15/11/2026 roda num host 24/7 no POP do provedor (i7-10700, 32 GB, RX 580), com uma instância gratuita da Oracle Cloud como porta de entrada pública. Também transmite as lives da TV do provedor (OBS) com interação do público por QR Code e, em teste, gerencia os celulares corporativos (MDM). Desde 20/11/2026 também hospeda o portal interno do colaborador (escalas e RH, com login pelo AD).
 
 > Este repositório guarda configurações de referência, scripts e a documentação das decisões. Nenhum segredo é versionado: senhas, chaves e tokens ficam fora daqui (veja [Segurança](docs/seguranca.md)).
 
@@ -33,6 +33,7 @@ flowchart LR
       end
 
       MDM["VM 112 · Headwind MDM<br/>celulares corporativos (teste)"]
+      RH["CT 113 · Frappe HR<br/>escalas e RH (piloto)"]
 
       S -->|"pasta lives"| OBS
     end
@@ -41,6 +42,8 @@ flowchart LR
     WG --> NOC
     CAM["Câmeras IP"] -->|RTSP| OBS
     PUB["Público (rede interna)"] -->|QR Code| PE
+    PCS["PCs da empresa"] -->|"HTTPS · CA interna"| RH
+    RH -->|"LDAPS · grupos padronizados"| AD["Active Directory<br/>controlador de domínio"]
     CEL["Celulares Android"] -.->|"polling HTTPS · produção via dst-nat"| MDM
     OBS -->|RTMP| TV["CDN de TV do provedor"]
     A -.->|"API nativa · sem host desde 17/11"| L["CT 102 · Ollama (GPU)<br/>a realocar"]
@@ -57,7 +60,7 @@ Detalhes em [docs/arquitetura.md](docs/arquitetura.md).
 | [`proxmox/host`](proxmox/host) | Rede com VLANs, IPv6 desativado, driver NVIDIA com Secure Boot, passthrough de GPU AMD, SSD de dados e [backup](proxmox/host/backup) |
 | [`proxmox/lxc`](proxmox/lxc) | Configurações de referência dos containers |
 | [`proxmox/firewall`](proxmox/firewall) | IPSets e regras do firewall do Proxmox |
-| [`servicos/`](servicos) | Ollama, Samba, OBS (VM das lives), [pedidos](servicos/pedidos) (QR Code + painel admin), [MDM](servicos/mdm) (celulares corporativos), NetBox, GLPI, Zabbix, OpenClaw, n8n, Discord, a sincronização NetBox → Zabbix e a integração Zabbix → GLPI |
+| [`servicos/`](servicos) | Ollama, Samba, OBS (VM das lives), [pedidos](servicos/pedidos) (QR Code + painel admin), [MDM](servicos/mdm) (celulares corporativos), [Frappe HR](servicos/frappe-rh) (escalas e RH), NetBox, GLPI, Zabbix, OpenClaw, n8n, Discord, a sincronização NetBox → Zabbix e a integração Zabbix → GLPI |
 | [`oracle/`](oracle) | Proxy público: Nginx Proxy Manager, WireGuard, firewall da instância |
 | [`mikrotik/`](mikrotik) | Ponta local do túnel e regras de firewall |
 | [`docs/`](docs) | Arquitetura, segurança, lições aprendidas e roadmap |
@@ -72,7 +75,7 @@ Detalhes em [docs/arquitetura.md](docs/arquitetura.md).
 
 ## Stack
 
-Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · OpenClaw · n8n · OBS Studio · Streamlink · Headwind MDM · Tomcat · PostgreSQL · Open WebUI · NetBox · GLPI · Zabbix · Samba · WireGuard · Nginx Proxy Manager · Let's Encrypt · Oracle Cloud (ARM) · MikroTik RouterOS 7
+Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · OpenClaw · n8n · OBS Studio · Streamlink · Headwind MDM · Tomcat · PostgreSQL · Frappe HR / ERPNext · MariaDB · Open WebUI · NetBox · GLPI · Zabbix · Samba · WireGuard · Nginx Proxy Manager · Let's Encrypt · Oracle Cloud (ARM) · MikroTik RouterOS 7
 
 ## Status
 
@@ -102,10 +105,12 @@ Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · OpenClaw · n8n · OBS S
 | Pedidos de música por QR, painel admin com 2FA e página em tempo real ([CT 111](servicos/pedidos/README.md)) | ✅ |
 | Recados moderados e enquetes nas lives (F4) | ⏳ |
 | MDM dos celulares corporativos (Headwind, [VM 112](servicos/mdm/README.md)) — teste com 1 aparelho | 🔄 |
+| Grupos do AD padronizados por setor/função (base do login dos sistemas) | ✅ |
+| Portal do colaborador ([Frappe HR, CT 113](servicos/frappe-rh/README.md)) — piloto de escalas com login pelo AD e aprovação do RH | 🔄 |
 | IA local de volta (host antigo formatado em 17/11; agente sem LLM) | ⏳ |
 | Grafana para o NOC | ⏳ |
 
-Legenda: ✅ concluído · 🔄 em andamento · ⏳ pendente. Atualizado em 21/11/2026.
+Legenda: ✅ concluído · 🔄 em andamento · ⏳ pendente. Atualizado em 22/11/2026.
 
 Roadmap por sistema (Proxmox, Zabbix, NetBox, GLPI, integrações, proxy, IA, n8n e lives) em [docs/roadmap.md](docs/roadmap.md).
 
@@ -113,10 +118,11 @@ Roadmap por sistema (Proxmox, Zabbix, NetBox, GLPI, integrações, proxy, IA, n8
 
 1. MDM: testar as restrições no aparelho de teste uma a uma; conta nominal + 2FA no painel; depois produção (domínio, certificado, allowlist no Nginx, dst-nat).
 2. Lives: usuário visualizador do marketing no painel; validar a saída automática do Jornal, a Missa de domingo e o failover das câmeras; depois recados e enquetes (F4).
-3. Host do POP: persistir a regra `DOCKER-USER` do GLPI e recriar os jobs de backup (incluindo VM 109, CT 111 e VM 112).
-4. Definir onde o LLM do agente volta a rodar.
-5. Zabbix em escala: switches/OLTs pais dos rádios no NetBox (lote 2), **dependências de triggers pelo `uplink`** e severidades, filtro de interfaces no LLD.
-6. Grafana; depois Consolidação (testes de segurança e de uso).
+3. Portal do colaborador (Frappe HR): escalas restantes do piloto; Fase 4 (Documento RH e Solicitação de Escala); confirmar a origem (NAT) dos PCs no firewall; backup, NetBox e Zabbix do CT 113.
+4. Host do POP: persistir a regra `DOCKER-USER` do GLPI e recriar os jobs de backup (incluindo VM 109, CT 111, VM 112 e CT 113).
+5. Definir onde o LLM do agente volta a rodar.
+6. Zabbix em escala: switches/OLTs pais dos rádios no NetBox (lote 2), **dependências de triggers pelo `uplink`** e severidades, filtro de interfaces no LLD.
+7. Grafana; depois Consolidação (testes de segurança e de uso).
 
 ## Telas
 

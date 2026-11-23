@@ -94,6 +94,29 @@ Headwind MDM Community na **VM 112** do host do POP, para os celulares Android (
 - [ ] Produção: domínio, certificado, Nginx com allowlist, dst-nat 443, migração do aparelho de teste por "Novo URL do servidor"
 - [ ] Backup (VM + dump do Postgres), janela de manutenção, Zabbix, NetBox/GLPI e termo de uso (LGPD)
 
+## Portal do colaborador — Frappe HR (piloto, 20–21/11)
+
+Escalas por setor e solicitações ao RH/DP no **CT 113** do host do POP, com login pelo AD — [servicos/frappe-rh](../servicos/frappe-rh/README.md).
+- [x] Fase 1: CT 113 (Debian 13, Docker), imagem própria Frappe v16 + ERPNext + HRMS, HTTPS com certificado da CA do AD, firewall com entrada em DROP (20/11)
+- [x] Fase 2: login LDAPS pelo AD, papéis pelos grupos padronizados, departamentos do piloto (21/11)
+- [x] Fase 3: turnos, feriados, escala migrada da planilha (nov–dez), colaborador vê só o mês atual aprovado, workflow de aprovação do RH (21/11)
+- [ ] Escalas de janeiro a abril e dos demais colaboradores do piloto
+- [ ] Fase 4: Documento RH (só RH/DP — LGPD) e Solicitação de Escala, com workflows
+- [ ] Fase 5: regras CLT, notificações, backup criptografado + vzdump e teste de restauração
+- [ ] Origem (NAT) dos PCs no firewall · NetBox e Zabbix (ICMP + 443) · reduzir os papéis do usuário do MCP
+
+## Active Directory — padronização de grupos (20/11)
+
+Um conjunto de grupos por **setor** ou **função** (`SETOR_*`, `FUNCAO_*`, `GAS_*`) lido por todos os sistemas com login pelo AD.
+- [x] Levantamento geral do domínio, lixeira do AD ativada e backup das ACLs do File Server (20/11)
+- [x] Contas de teste/inativas desativadas e movidas para uma OU própria (20/11)
+- [x] Lotes 1–3: OU `GRUPOS`, grupos renomeados (SID mantido) ou criados no padrão, grupos sem uso apagados — **todos os grupos da empresa no padrão** (20/11)
+- [x] Permissões do File Server revisadas nas pastas com grupos antigos; pastas travadas destravadas (20/11)
+- [ ] Testes de acesso dos usuários após logoff/logon e primeiro logon das contas novas
+- [ ] Definir o setor das contas ainda sem grupo e os donos de algumas pastas com os gestores
+- [ ] Caminhos longos (> 260) numa pasta do File Server; pastas ainda sem SISTEMA
+- [ ] Ligar os demais sistemas (GLPI, Zabbix, Grafana, NetBox) aos grupos novos
+
 ## Home page do suporte (em planejamento, 17/11)
 
 Página inicial do navegador dos PCs do suporte, para achar a causa de um problema rápido.
@@ -235,6 +258,7 @@ Rodada de testes de segurança e de uso no dia a dia, antes de considerar o proj
 ## Próximo passo
 
 0. **MDM (19/11):** testar as restrições no aparelho de teste uma a uma → conta nominal + 2FA → produção (domínio, certificado, allowlist no Nginx, dst-nat).
+0. **Portal do colaborador (21/11):** escalas restantes do piloto → Fase 4 (Documento RH e Solicitação de Escala) → origem (NAT) dos PCs no firewall, backup, NetBox e Zabbix do CT 113.
 0. **Lives / TV Play (18/11):** usuário visualizador do marketing; validar saída do Jornal, Missa de domingo e failover das câmeras; depois F4 (recados e enquetes). No host do POP: `DOCKER-USER` do GLPI e jobs de backup; definir onde o LLM do agente volta a rodar.
 1. **Zabbix em escala (~450 dispositivos):** dependências/severidades, filtro de interfaces no LLD e importação CSV no NetBox (ICMP padrão e dimensionamento do CT 104 concluídos em 30/10).
 2. Política de saída dos containers (egress) — o Zabbix vai precisar alcançar as novas redes.

@@ -27,6 +27,7 @@
 | 109 | obs-lives | **VM** Windows 11 | SSD local | OBS das lives, RX 580 em passthrough, RTMP para o CDN de TV ([guia](../servicos/obs-lives/README.md)) |
 | 111 | pedidos | LXC (Python) | SSD local | Pedidos por QR, retransmissão por link, painel admin HTTPS com 2FA ([guia](../servicos/pedidos/README.md)) |
 | 112 | mdm | **VM** Ubuntu 24.04 (Secure Boot) | SSD de dados | Headwind MDM dos celulares corporativos; Tomcat/Postgres/MQTT só em localhost, IN/OUT em DROP; em teste desde 19/11 ([guia](../servicos/mdm/README.md)) |
+| 113 | frappe-rh | LXC não privilegiado (Docker) | SSD de dados | Frappe HR (portal do colaborador: escalas e RH); MariaDB/Redis no compose, Nginx com certificado da CA do AD, login LDAPS pelo AD; piloto desde 20/11 ([guia](../servicos/frappe-rh/README.md)) |
 
 ## Decisões
 
@@ -37,6 +38,7 @@
 - **WireGuard num CT próprio (`wg-gw`)**, nunca no host: o NAT direto no host não convivia com o firewall dos CTs; o CT faz masquerade e os serviços veem uma origem única.
 - **Proxy na nuvem + túnel iniciado de dentro (CT `wg-gw`; antes pelo roteador):** nenhuma porta aberta na rede local; funciona mesmo atrás de CGNAT.
 - **Túnel dedicado para o proxy**, separado da VPN de administração: o proxy é exposto à internet e não pode ter acesso administrativo.
+- **Grupos do AD por setor ou função, nunca por sistema (20/11):** um único conjunto de grupos (`SETOR_*`, `FUNCAO_*`) lido por todos os sistemas com login pelo AD; renomear em vez de recriar preserva o SID (permissões de pasta e filtros de GPO continuam valendo).
 - **Banco do monitoramento em disco dedicado:** escrita contínua do Zabbix chegou a travar o host quando dividia o SSD do sistema.
 
 ## Backup
@@ -54,5 +56,5 @@ flowchart LR
 
 - Dois locais além do disco do sistema: outro disco no mesmo PC e a nuvem.
 - Conta do Drive dedicada (grupo familiar do Google One) com `scope=drive.file`: o token não alcança a conta pessoal.
-- ⚠️ No host do POP os jobs ainda **não foram recriados** (pendência de 15/11); o desenho acima é o alvo, agora incluindo CT 100, VM 109, CT 111 e VM 112 (+ dump diário do Postgres do MDM).
+- ⚠️ No host do POP os jobs ainda **não foram recriados** (pendência de 15/11); o desenho acima é o alvo, agora incluindo CT 100, VM 109, CT 111, VM 112 e CT 113 (+ dump diário do Postgres do MDM e backup criptografado do Frappe).
 - Detalhes e restauração em [`proxmox/host/backup`](../proxmox/host/backup/README.md).
