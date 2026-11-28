@@ -25,7 +25,7 @@ flowchart LR
 
 | Item | Valor |
 |---|---|
-| Tipo | LXC **não privilegiado** com Docker (`nesting=1,keyctl=1`), Debian 13, 2 vCPU / 2 GB / 16 GB em `ssd-dados` |
+| Tipo | LXC **não privilegiado** com Docker (`nesting=1,keyctl=1`), Debian 13, 2 vCPU / **4 GB** (2 GB até 27/11) / 16 GB em `ssd-dados` |
 | Rede | VLAN de serviços, IPv6 desativado, SSH desligado (acesso por `pct enter`) |
 | Firewall | [`ct.fw.example`](ct.fw.example): entrada 443 só da administração e da VM do agente; **saída só para as 4 APIs + DNS** |
 | n8n | [`compose.yml.example`](compose.yml.example): imagem com versão fixa, sem porta publicada, telemetria/templates/aviso de versão desligados, nós `executeCommand`/`ssh`/`localFileTrigger` bloqueados, execuções apagadas após 7 dias |
@@ -102,6 +102,15 @@ Mudanças no CT para isso:
 - **Saída permanente** (exceção à regra "só para atualizar"): API do IXC (443, IP do servidor) e API do Discord (443, faixa da Cloudflare) — ver [`ct.fw.example`](ct.fw.example)
 - `compose.override.yml` com `postgres:17` na rede `interna`, sem porta publicada
 - Fuso no banco: `ALTER DATABASE noc SET timezone TO 'America/Fortaleza'` — o `PGTZ` do container **não** vale para a conexão do n8n
+
+## Atendimento — Opa Suite → Postgres → Grafana
+
+Terceiro uso do CT (27/11/2026): sincronização dos atendimentos da plataforma de atendimento (Opa Suite) num Postgres central e painel executivo para a diretoria. Ver [`opa-suite/`](opa-suite/README.md).
+
+Mudanças no CT para isso:
+- **Saída permanente** para a API do Opa Suite (443, IP do servidor) e para o Postgres central (5432, [CT 115](../postgres-noc/README.md)) — ver [`ct.fw.example`](ct.fw.example)
+- **RAM de 2 para 4 GB:** com 1,4 GB em uso e swap ativo, o executor de Code nodes do n8n 2.x recusava tarefas (`Offer expired - not accepted within validity window`) e o editor perdia a conexão
+- Credencial **Header Auth** com o token do Opa e nós HTTP Request nativos (o Code node não lê `$env` por padrão no 2.x)
 
 ## Próximos passos
 

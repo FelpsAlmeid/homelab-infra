@@ -1,0 +1,1432 @@
+{
+  "uid": "noc-atendimento-opa",
+  "title": "Atendimento ao Cliente — Opa Suite",
+  "description": "Painel executivo de atendimento (Opa Suite → n8n → Postgres noc).",
+  "tags": [
+    "atendimento",
+    "opa-suite",
+    "diretoria",
+    "conecta"
+  ],
+  "timezone": "America/Fortaleza",
+  "refresh": "5m",
+  "graphTooltip": 1,
+  "editable": true,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5m",
+      "15m",
+      "1h"
+    ]
+  },
+  "schemaVersion": 41,
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 19,
+        "h": 3
+      },
+      "transparent": true,
+      "options": {
+        "mode": "html",
+        "content": "<div style=\"display:flex;align-items:center;gap:22px;height:100%;padding:6px 8px;border-bottom:3px solid #94C800;\"><img src=\"/public/img/conecta/conecta-fibra-logo-600.png\" alt=\"Conecta Fibra\" style=\"height:46px;flex:none\"/><div style=\"width:1px;align-self:stretch;margin:6px 0;background:rgba(255,255,255,.18)\"></div><div style=\"flex:1;min-width:0\"><div style=\"font-size:22px;font-weight:700;letter-spacing:.2px;line-height:1.2\">Atendimento ao Cliente</div><div style=\"font-size:13px;color:#9AA3AE;margin-top:3px\">Painel executivo · Opa Suite · compare períodos pelo seletor de tempo e filtre setores pelo campo <b>Setor</b></div></div></div>"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Dados atualizados há",
+      "gridPos": {
+        "x": 19,
+        "y": 0,
+        "w": 5,
+        "h": 3
+      },
+      "transparent": true,
+      "description": "Tempo desde a última sincronização com a Opa Suite (n8n, a cada 5 min). Verde até 10 min.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL-NOC}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT EXTRACT(EPOCH FROM (now() - max(executado_em))) / 60 AS valor FROM opa_sync_log WHERE fluxo = 'opa_sync_atendimentos'"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "m",
+          "decimals": 0,
+          "noValue": "sem dados",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#94C800",
+                "value": null
+              },
+              {
+                "color": "#F0B05A",
+                "value": 10
+              },
+              {
+                "color": "#FF8A7A",
+                "value": 30
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "row",
+      "title": "Resumo do período",
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Atendimentos",
+      "description": "Atendimentos abertos no período. A seta compara com o período anterior de mesmo tamanho.",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 4,
+        "h": 5
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL-NOC}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH p AS (SELECT $__timeFrom()::timestamptz AS ini, $__timeTo()::timestamptz AS fim),\nj AS (SELECT p.ini - (p.fim - p.ini) AS ini, p.ini AS fim, 0 AS ord FROM p\n      UNION ALL SELECT p.ini, p.fim, 1 FROM p)\nSELECT j.fim AS time, count(a.id) AS valor\nFROM j LEFT JOIN opa_atendimentos a ON a.data_abertura >= j.ini AND a.data_abertura < j.fim AND a.setor IN ($setor)\nGROUP BY j.fim, j.ord HAVING count(a.id) > 0\nORDER BY j.ord"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#94C800"
+          },
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": true,
+        "percentChangeColorMode": "same_as_value"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Resolvidos pelo bot",
+      "description": "Parte dos atendimentos finalizados que o agente virtual resolveu sozinho. Considera todos os setores.",
+      "gridPos": {
+        "x": 4,
+        "y": 4,
+        "w": 4,
+        "h": 5
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL-NOC}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH p AS (SELECT $__timeFrom()::timestamptz AS ini, $__timeTo()::timestamptz AS fim),\nj AS (SELECT p.ini - (p.fim - p.ini) AS ini, p.ini AS fim, 0 AS ord FROM p\n      UNION ALL SELECT p.ini, p.fim, 1 FROM p)\nSELECT j.fim AS time, round(100.0 * count(a.id) FILTER (WHERE a.setor = 'Agentes Virtuais') / nullif(count(a.id), 0), 1) AS valor\nFROM j LEFT JOIN opa_atendimentos a ON a.data_encerramento >= j.ini AND a.data_encerramento < j.fim AND a.status = 'F'\nGROUP BY j.fim, j.ord HAVING count(a.id) > 0\nORDER BY j.ord"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#18A8E4"
+          },
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": true,
+        "percentChangeColorMode": "standard"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Tempo mediano",
+      "description": "Mediana do tempo entre abertura e encerramento dos atendimentos humanos (sem o bot). A mediana não é distorcida por conversas que ficam dias abertas. Seta verde = mais rápido.",
+      "gridPos": {
+        "x": 8,
+        "y": 4,
+        "w": 4,
+        "h": 5
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL-NOC}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH p AS (SELECT $__timeFrom()::timestamptz AS ini, $__timeTo()::timestamptz AS fim),\nj AS (SELECT p.ini - (p.fim - p.ini) AS ini, p.ini AS fim, 0 AS ord FROM p\n      UNION ALL SELECT p.ini, p.fim, 1 FROM p)\nSELECT j.fim AS time, round((percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (a.data_encerramento - a.data_abertura)) / 60))::numeric, 0) AS valor\nFROM j LEFT JOIN opa_atendimentos a ON a.data_encerramento >= j.ini AND a.data_encerramento < j.fim AND a.status = 'F' AND a.setor <> 'Agentes Virtuais' AND a.setor IN ($setor)\nGROUP BY j.fim, j.ord HAVING count(a.id) > 0\nORDER BY j.ord"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: min",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#A9DB1E"
+          },
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": true,
+        "percentChangeColorMode": "inverted"
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Satisfação (CSAT)",
+      "description": "Percentual de notas 4 e 5 na pesquisa de satisfação (escala 1 a 5).",
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 4,
+        "h": 5
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL-NOC}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH p AS (SELECT $__timeFrom()::timestamptz AS ini, $__timeTo()::timestamptz AS fim),\nj AS (SELECT p.ini - (p.fim - p.ini) AS ini, p.ini AS fim, 0 AS ord FROM p\n      UNION ALL SELECT p.ini, p.fim, 1 FROM p)\nSELECT j.fim AS time, round(100.0 * count(a.id) FILTER (WHERE a.rating >= 4) / nullif(count(a.rating), 0), 1) AS valor\nFROM j LEFT JOIN opa_atendimentos a ON a.data_abertura >= j.ini AND a.data_abertura < j.fim AND a.setor IN ($setor)\nGROUP BY j.fim, j.ord HAVING count(a.rating) > 0\nORDER BY j.ord"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#F0B05A"
+          },
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": true,
+        "percentChangeColorMode": "standard"
+      }
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Fora do horário",
+      "description": "Atendimentos abertos fora de seg-sex 8h-18h e sáb 8h-12h (horário de Fortaleza).",
+      "gridPos": {
+        "x": 16,
+        "y": 4,
+        "w": 4,
+        "h": 5
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL-NOC}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH p AS (SELECT $__timeFrom()::timestamptz AS ini, $__timeTo()::timestamptz AS fim),\nj AS (SELECT p.ini - (p.fim - p.ini) AS ini, p.ini AS fim, 0 AS ord FROM p\n      UNION ALL SELECT p.ini, p.fim, 1 FROM p)\nSELECT j.fim AS time, round(100.0 * count(a.id) FILTER (WHERE a.fora_horario) / nullif(count(a.id), 0), 1) AS valor\nFROM j LEFT JOIN opa_atendimentos a ON a.data_abertura >= j.ini AND a.data_abertura < j.fim AND a.setor IN ($setor)\nGROUP BY j.fim, j.ord HAVING count(a.id) > 0\nORDER BY j.ord"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#5CC6F2"
+          },
+          "noValue": "—"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "showPercentChange": true,
+        "percentChangeColorMode": "same_as_value"
+      }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Em aberto agora",
+      "gridPos": {
+        "x": 20,
+        "y": 4,
+        "w": 4,
+        "h": 5
+      },
+      "description": "Situação neste momento (ignora o período): em atendimento e aguardando na fila.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL-NOC}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT count(*) FILTER (WHERE status = 'EA') AS \"Em atendimento\", count(*) FILTER (WHERE status NOT IN ('EA','F')) AS \"Na fila\" FROM opa_atendimentos WHERE setor IN ($setor)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "0",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#18A8E4"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Na fila"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F0B05A"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal"
+      }
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Tendência e canais",
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Atendimentos por dia",
+      "description": "Atendimentos abertos por dia (horário de Fortaleza), empilhados por canal.",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 16,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL-NOC}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT date_trunc('day', data_abertura AT TIME ZONE 'America/Fortaleza') AT TIME ZONE 'America/Fortaleza' AS time, canal AS metric, count(*) AS valor FROM opa_atendimentos WHERE setor IN ($setor) AND $__timeFilter(data_abertura) GROUP BY 1, 2 ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 85,
+            "lineWidth": 0,
+            "barAlignment": 0,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "axisBorderShow": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "Whatsapp"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#94C800"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "Web Chat"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#18A8E4"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "Instagram"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F0B05A"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "Messenger"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5CC6F2"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "Telegram"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#7EB8DA"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "Telefonia"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#C7D96E"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "piechart",
+      "title": "Participação por canal",
+      "description": "Distribuição dos atendimentos do período por canal.",
+      "gridPos": {
+        "x": 16,
+        "y": 10,
+        "w": 8,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL-NOC}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT canal, count(*) AS valor FROM opa_atendimentos WHERE setor IN ($setor) AND $__timeFilter(data_abertura) GROUP BY canal ORDER BY 2 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Whatsapp"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#94C800"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Web Chat"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#18A8E4"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Instagram"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#F0B05A"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Messenger"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#5CC6F2"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Telegram"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#7EB8DA"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Telefonia"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#C7D96E"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "pieType": "donut",
+        "displayLabels": [
+          "percent"
+        ],
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "row",
+      "title": "Desempenho por setor",
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 14,
+      "type": "table",
+      "title": "Indicadores por setor",
+      "description": "Tempo mediano = abertura até encerramento (finalizados). CSAT = % de notas 4 e 5. O setor Agentes Virtuais é o bot.",
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL-NOC}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "WITH s AS (\n  SELECT setor, count(*) AS qtd,\n    percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (data_encerramento - data_abertura)) / 60)\n      FILTER (WHERE status = 'F' AND data_encerramento IS NOT NULL) AS m,\n    avg(rating) AS nota, count(rating) AS aval,\n    count(*) FILTER (WHERE rating >= 4) AS boas, count(*) FILTER (WHERE fora_horario) AS fora\n  FROM opa_atendimentos WHERE setor IN ($setor) AND $__timeFilter(data_abertura) GROUP BY setor)\nSELECT setor AS \"Setor\", qtd AS \"Atendimentos\",\n  round(100.0 * qtd / sum(qtd) OVER (), 1) AS \"% do total\",\n  CASE WHEN m IS NULL THEN NULL WHEN m < 60 THEN round(m)::int || ' min' WHEN m < 1440 THEN floor(m / 60)::int || 'h' || lpad((round(m)::int % 60)::text, 2, '0') ELSE floor(m / 1440)::int || 'd ' || floor((round(m)::int % 1440) / 60)::int || 'h' END AS \"Tempo mediano\",\n  round(nota::numeric, 2) AS \"Nota média\",\n  round(100.0 * boas / nullif(aval, 0), 0) AS \"CSAT\",\n  aval AS \"Avaliações\",\n  round(100.0 * fora / qtd, 0) AS \"Fora do horário\"\nFROM s ORDER BY qtd DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "noValue": "—"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Setor"
+            },
+            "properties": [
+              {
+                "id": "custom.align",
+                "value": "left"
+              },
+              {
+                "id": "custom.width",
+                "value": 230
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Atendimentos"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#94C800"
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "custom.width",
+                "value": 260
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "% do total"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Nota média"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null",
+                      "result": {
+                        "text": "—",
+                        "color": "text",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CSAT"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null",
+                      "result": {
+                        "text": "—",
+                        "color": "text",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#FF8A7A",
+                      "value": null
+                    },
+                    {
+                      "color": "#F0B05A",
+                      "value": 75
+                    },
+                    {
+                      "color": "#94C800",
+                      "value": 85
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Fora do horário"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Atendimentos",
+            "desc": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Quando o cliente procura",
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Demanda por dia da semana e hora",
+      "description": "Total de atendimentos abertos no período em cada dia da semana e hora (Fortaleza). Quanto mais escuro, maior a demanda — base para dimensionar escala.",
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL-NOC}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT CASE d WHEN 1 THEN 'Seg' WHEN 2 THEN 'Ter' WHEN 3 THEN 'Qua' WHEN 4 THEN 'Qui' WHEN 5 THEN 'Sex' WHEN 6 THEN 'Sáb' ELSE 'Dom' END AS \"Dia\",\n  count(*) FILTER (WHERE h = 0) AS \"00h\",\n  count(*) FILTER (WHERE h = 1) AS \"01h\",\n  count(*) FILTER (WHERE h = 2) AS \"02h\",\n  count(*) FILTER (WHERE h = 3) AS \"03h\",\n  count(*) FILTER (WHERE h = 4) AS \"04h\",\n  count(*) FILTER (WHERE h = 5) AS \"05h\",\n  count(*) FILTER (WHERE h = 6) AS \"06h\",\n  count(*) FILTER (WHERE h = 7) AS \"07h\",\n  count(*) FILTER (WHERE h = 8) AS \"08h\",\n  count(*) FILTER (WHERE h = 9) AS \"09h\",\n  count(*) FILTER (WHERE h = 10) AS \"10h\",\n  count(*) FILTER (WHERE h = 11) AS \"11h\",\n  count(*) FILTER (WHERE h = 12) AS \"12h\",\n  count(*) FILTER (WHERE h = 13) AS \"13h\",\n  count(*) FILTER (WHERE h = 14) AS \"14h\",\n  count(*) FILTER (WHERE h = 15) AS \"15h\",\n  count(*) FILTER (WHERE h = 16) AS \"16h\",\n  count(*) FILTER (WHERE h = 17) AS \"17h\",\n  count(*) FILTER (WHERE h = 18) AS \"18h\",\n  count(*) FILTER (WHERE h = 19) AS \"19h\",\n  count(*) FILTER (WHERE h = 20) AS \"20h\",\n  count(*) FILTER (WHERE h = 21) AS \"21h\",\n  count(*) FILTER (WHERE h = 22) AS \"22h\",\n  count(*) FILTER (WHERE h = 23) AS \"23h\"\nFROM (SELECT EXTRACT(ISODOW FROM data_abertura AT TIME ZONE 'America/Fortaleza')::int AS d,\n             EXTRACT(HOUR FROM data_abertura AT TIME ZONE 'America/Fortaleza')::int AS h\n      FROM opa_atendimentos WHERE setor IN ($setor) AND $__timeFilter(data_abertura)) x\nGROUP BY d ORDER BY d"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "center",
+            "width": 46,
+            "cellOptions": {
+              "type": "color-background",
+              "mode": "basic"
+            }
+          },
+          "color": {
+            "mode": "continuous-greens"
+          },
+          "min": 0,
+          "fieldMinMax": false,
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Dia"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 60
+              },
+              {
+                "id": "custom.align",
+                "value": "left"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "row",
+      "title": "Equipe e motivos",
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 18,
+      "type": "barchart",
+      "title": "Atendimentos finalizados por pessoa (top 10)",
+      "description": "Equipe humana (o agente virtual não entra). Conta pelo encerramento no período.",
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL-NOC}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT atendente, count(*) AS valor FROM opa_atendimentos WHERE status = 'F' AND atendente IS NOT NULL AND setor <> 'Agentes Virtuais' AND setor IN ($setor) AND $__timeFilter(data_encerramento) GROUP BY atendente ORDER BY valor DESC LIMIT 10"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#94C800"
+          },
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 0,
+            "axisBorderShow": false,
+            "gradientMode": "none"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always",
+        "barWidth": 0.7,
+        "xTickLabelRotation": 0,
+        "xTickLabelMaxLength": 28,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "barchart",
+      "title": "Motivos mais frequentes (top 10)",
+      "description": "Motivo registrado no atendimento (atendimentos sem motivo, como os do bot, não entram).",
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_POSTGRESQL-NOC}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT motivo, count(*) AS valor FROM opa_atendimentos WHERE motivo IS NOT NULL AND setor IN ($setor) AND $__timeFilter(data_abertura) GROUP BY motivo ORDER BY valor DESC LIMIT 10"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#18A8E4"
+          },
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 0,
+            "axisBorderShow": false,
+            "gradientMode": "none"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "always",
+        "barWidth": 0.7,
+        "xTickLabelRotation": 0,
+        "xTickLabelMaxLength": 28,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": "row",
+      "title": "Operação · atendimentos em aberto (detalhe)",
+      "gridPos": {
+        "x": 0,
+        "y": 49,
+        "w": 24,
+        "h": 1
+      },
+      "collapsed": true,
+      "panels": [
+        {
+          "id": 20,
+          "type": "table",
+          "title": "Atendimentos em aberto",
+          "description": "Situação agora (ignora o período). Ordenado do mais antigo para o mais novo.",
+          "gridPos": {
+            "x": 0,
+            "y": 50,
+            "w": 24,
+            "h": 10
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_POSTGRESQL-NOC}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "grafana-postgresql-datasource",
+                "uid": "${DS_POSTGRESQL-NOC}"
+              },
+              "format": "table",
+              "rawQuery": true,
+              "editorMode": "code",
+              "rawSql": "SELECT protocolo AS \"Protocolo\", setor AS \"Setor\", canal AS \"Canal\", atendente AS \"Atendente\", CASE status WHEN 'EA' THEN 'Em atendimento' WHEN 'AG' THEN 'Aguardando (fila)' ELSE status END AS \"Status\", data_abertura AS \"Aberto em\", round(EXTRACT(EPOCH FROM (now() - data_abertura)) / 3600) AS \"Aberto há\" FROM opa_atendimentos WHERE status <> 'F' AND setor IN ($setor) ORDER BY data_abertura ASC"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": "left",
+                "cellOptions": {
+                  "type": "auto"
+                }
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Aberto há"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "suffix: h"
+                  },
+                  {
+                    "id": "custom.cellOptions",
+                    "value": {
+                      "type": "color-text"
+                    }
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "thresholds"
+                    }
+                  },
+                  {
+                    "id": "thresholds",
+                    "value": {
+                      "mode": "absolute",
+                      "steps": [
+                        {
+                          "color": "text",
+                          "value": null
+                        },
+                        {
+                          "color": "#F0B05A",
+                          "value": 24
+                        },
+                        {
+                          "color": "#FF8A7A",
+                          "value": 72
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "setor",
+        "label": "Setor",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${DS_POSTGRESQL-NOC}"
+        },
+        "query": "SELECT DISTINCT setor FROM opa_atendimentos ORDER BY 1",
+        "definition": "SELECT DISTINCT setor FROM opa_atendimentos ORDER BY 1",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [],
+  "__inputs": [
+    {
+      "name": "DS_POSTGRESQL-NOC",
+      "label": "Postgres - noc",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "13.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "grafana-postgresql-datasource",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    }
+  ]
+}

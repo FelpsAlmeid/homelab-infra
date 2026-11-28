@@ -164,12 +164,14 @@ Página inicial do navegador dos PCs do suporte, para achar a causa de um proble
 - [ ] Dependências de triggers a partir do `uplink`; Network Map depois
 
 **Novos serviços (depois)**
-- [ ] Grafana (CT leve, plugin do Zabbix com usuário somente leitura, publicado no proxy) — **planejado (04/11)**
+- [x] Grafana (CT 114, plugin do Zabbix com usuário somente leitura) — no ar desde 23/11 ([guia](../servicos/grafana/README.md))
   - [x] Decidido: dashboards do NOC no Grafana — o Zabbix 7.0 não importa dashboard global pela interface (só no 8.0)
-  - [ ] Validar o desenho (LXC leve: 2 vCPU, 1 GB, SSD de dados) dentro dos limites de RAM do host
-  - [ ] Usuário de API próprio no Zabbix (lista de permissões só `.get`) + firewall
-  - [ ] Instalação (apt) + plugin do Zabbix; dashboards Visão NOC, ICMP, backbone SNMP e por POP, com JSON versionado aqui
-  - [ ] Backup e publicação no proxy com Access List
+  - [x] LXC leve (SSD de dados, 1 GB) dentro dos limites de RAM do host
+  - [x] Usuário de API próprio no Zabbix (lista de permissões só `.get`) + firewall
+  - [x] Instalação (apt) + plugin do Zabbix
+  - [x] Painel executivo de atendimento (Postgres `noc`, usuário só leitura) com JSON versionado ([dashboard](../servicos/grafana/dashboards/atendimento-opa-suite.json), 27/11)
+  - [ ] Exportar para cá os dashboards do NOC (visão geral, topologia, TVs)
+  - [ ] Backup, travamento de saída do CT e publicação no proxy com Access List
 - [ ] Serviços pessoais (TeamSpeak/CS2) em VLAN separada, fora da documentação da empresa
 
 ## NetBox
@@ -232,6 +234,8 @@ Página inicial do navegador dos PCs do suporte, para achar a causa de um proble
 - [ ] Ferramenta MCP `cto_alerta` para o agente responder sobre os alertas
 - [ ] Relatórios de cadastro (fibra sem ONU, ONUs de clientes inativos ocupando porta, CTOs sem coordenada) · aviso de falha dos fluxos pelo Zabbix · limpeza periódica da tabela `quedas`
 - [ ] Alertas de rádio
+- [x] **Atendimento Opa Suite** ([guia](../servicos/n8n/opa-suite/README.md), 27/11): catálogos diários + atendimentos a cada 5 min (janelas de abertura e encerramento, paginação de 1000), carga histórica manual, Postgres central no [CT 115](../servicos/postgres-noc/README.md), painel executivo para a diretoria; RAM do CT 108 para 4 GB
+- [ ] Atendimento: horário comercial real pelo endpoint de períodos · aviso no Zabbix se o sync parar · 30 dias anteriores carregados para a comparação entre períodos
 - [ ] Importar a CA do Caddy do n8n no notebook de administração
 - [ ] Segunda ferramenta: detalhe de um host
 - [ ] Fluxos de escrita com aprovação humana
@@ -263,5 +267,5 @@ Rodada de testes de segurança e de uso no dia a dia, antes de considerar o proj
 1. **Zabbix em escala (~450 dispositivos):** dependências/severidades, filtro de interfaces no LLD e importação CSV no NetBox (ICMP padrão e dimensionamento do CT 104 concluídos em 30/10).
 2. Política de saída dos containers (egress) — o Zabbix vai precisar alcançar as novas redes.
 3. ~~Primeiro caso de uso N2~~ (feito via n8n, 03/11) · ~~canal Discord~~ (03/11); ~~alertas de fibra no Discord~~ (03/11, direto pelo n8n); próximo no agente: resumo em horário fixo no canal e a ferramenta `cto_alerta`.
-4. Grafana; depois serviços pessoais em VLAN separada.
+4. ~~Grafana~~ (CT 114, 23/11; painel de atendimento da diretoria em 27/11) → acesso da diretoria (contas Viewer + proxy) e exportar os dashboards do NOC; depois serviços pessoais em VLAN separada.
 5. Consolidação: testes de segurança e de uso.

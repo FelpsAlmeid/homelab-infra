@@ -1,0 +1,569 @@
+{
+  "name": "opa_sync_catalogos",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "20 4 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger",
+      "name": "Diário 04:20",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -560,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "baseurl",
+              "name": "baseUrl",
+              "value": "https://<servidor-opa>/api/v1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -320,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{ json: { status: 'A' } }, { json: { status: 'I' } }];\n"
+      },
+      "id": "canais_status",
+      "name": "Status A/I (canais)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.baseUrl }}/canal-comunicacao/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { status: $json.status }, options: { limit: 1000 } }) }}",
+        "options": {}
+      },
+      "id": "fetch_canais",
+      "name": "Buscar canais",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        160,
+        100
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "TROCAR_PELA_CREDENCIAL_OPA",
+          "name": "Opa Suite - Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Junta o array \"data\" de todas as respostas (uma por página).\nconst out = [];\nfor (const item of $input.all()) {\n  for (const r of ((item.json && item.json.data) || [])) out.push({ json: r });\n}\nreturn out;\n"
+      },
+      "id": "split_canais",
+      "name": "Separar (canais)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO opa_canais (id, nome, canal, status, integracao, atualizado_em)\nVALUES ($1, $2, $3, $4, $5, now())\nON CONFLICT (id) DO UPDATE SET nome=EXCLUDED.nome, canal=EXCLUDED.canal, status=EXCLUDED.status, integracao=EXCLUDED.integracao, atualizado_em=now();",
+        "options": {
+          "queryReplacement": "={{ [$json._id, $json.nome, $json.canal, $json.status, $json.integracao || null] }}"
+        }
+      },
+      "id": "upsert_canais",
+      "name": "Upsert canais",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        640,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "TROCAR_PELA_CREDENCIAL_NOC",
+          "name": "Postgres - noc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{ json: { status: 'A' } }, { json: { status: 'I' } }];\n"
+      },
+      "id": "usuarios_status",
+      "name": "Status A/I (atendentes)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.baseUrl }}/usuario/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { status: $json.status }, options: { limit: 1000 } }) }}",
+        "options": {}
+      },
+      "id": "fetch_usuarios",
+      "name": "Buscar atendentes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        160,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "TROCAR_PELA_CREDENCIAL_OPA",
+          "name": "Opa Suite - Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Junta o array \"data\" de todas as respostas (uma por página).\nconst out = [];\nfor (const item of $input.all()) {\n  for (const r of ((item.json && item.json.data) || [])) out.push({ json: r });\n}\nreturn out;\n"
+      },
+      "id": "split_usuarios",
+      "name": "Separar (atendentes)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO opa_usuarios (id, nome, status, tipo, atualizado_em)\nVALUES ($1, $2, $3, $4, now())\nON CONFLICT (id) DO UPDATE SET nome=EXCLUDED.nome, status=EXCLUDED.status, tipo=EXCLUDED.tipo, atualizado_em=now();",
+        "options": {
+          "queryReplacement": "={{ [$json._id, $json.nome, $json.status, $json.tipo] }}"
+        }
+      },
+      "id": "upsert_usuarios",
+      "name": "Upsert atendentes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        640,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "TROCAR_PELA_CREDENCIAL_NOC",
+          "name": "Postgres - noc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.baseUrl }}/departamento/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { recebeAtendimento: true }, options: { limit: 1000 } }) }}",
+        "options": {}
+      },
+      "id": "fetch_setores",
+      "name": "Buscar setores",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        160,
+        500
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "TROCAR_PELA_CREDENCIAL_OPA",
+          "name": "Opa Suite - Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Junta o array \"data\" de todas as respostas (uma por página).\nconst out = [];\nfor (const item of $input.all()) {\n  for (const r of ((item.json && item.json.data) || [])) out.push({ json: r });\n}\nreturn out;\n"
+      },
+      "id": "split_setores",
+      "name": "Separar (setores)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO opa_setores (id, nome, status, atualizado_em)\nVALUES ($1, $2, $3, now())\nON CONFLICT (id) DO UPDATE SET nome=EXCLUDED.nome, status=EXCLUDED.status, atualizado_em=now();",
+        "options": {
+          "queryReplacement": "={{ [$json._id, $json.nome, $json.status] }}"
+        }
+      },
+      "id": "upsert_setores",
+      "name": "Upsert setores",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        640,
+        440
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "TROCAR_PELA_CREDENCIAL_NOC",
+          "name": "Postgres - noc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.baseUrl }}/motivo",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { departamentos: $json._id }, options: { limit: 1000 } }) }}",
+        "options": {}
+      },
+      "id": "fetch_motivos",
+      "name": "Buscar motivos (por setor)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        620
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "TROCAR_PELA_CREDENCIAL_OPA",
+          "name": "Opa Suite - Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Junta o array \"data\" de todas as respostas (uma por página).\nconst out = [];\nfor (const item of $input.all()) {\n  for (const r of ((item.json && item.json.data) || [])) out.push({ json: r });\n}\nreturn out;\n"
+      },
+      "id": "split_motivos",
+      "name": "Separar (motivos)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO opa_motivos (id, motivo, atualizado_em)\nVALUES ($1, $2, now())\nON CONFLICT (id) DO UPDATE SET motivo=EXCLUDED.motivo, atualizado_em=now();",
+        "options": {
+          "queryReplacement": "={{ [$json._id, $json.motivo] }}"
+        }
+      },
+      "id": "upsert_motivos",
+      "name": "Upsert motivos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1120,
+        620
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "TROCAR_PELA_CREDENCIAL_NOC",
+          "name": "Postgres - noc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO opa_sync_log (fluxo, executado_em, registros, status) VALUES ('opa_sync_catalogos', now(), (SELECT count(*) FROM opa_canais) + (SELECT count(*) FROM opa_usuarios) + (SELECT count(*) FROM opa_setores) + (SELECT count(*) FROM opa_motivos), 'ok');",
+        "options": {}
+      },
+      "id": "log",
+      "name": "Log da sincronização",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1360,
+        620
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "TROCAR_PELA_CREDENCIAL_NOC",
+          "name": "Postgres - noc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## opa_sync_catalogos (diário 04:20)\n\nFiltros confirmados na documentação da Opa Suite (cada endpoint só aceita os campos dele):\n- **Canais / Atendentes**: `status` A e I (2 chamadas, junta)\n- **Setores**: `recebeAtendimento: true` (trouxe ativos e inativos — 12 em 27/11)\n- **Motivos**: só filtra por `departamentos` → busca um por setor, depois dos setores\n\n**LGPD:** a API de usuários devolve e-mail e token de dispositivo — só `nome`, `status` e `tipo` são gravados. Execuções com sucesso e manuais não ficam salvas.\n\nRodar este **antes** do primeiro `opa_sync_atendimentos` / `opa_backfill_atendimentos`.",
+        "height": 380,
+        "width": 500,
+        "color": 5
+      },
+      "id": "nota",
+      "name": "Nota",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        -20
+      ]
+    }
+  ],
+  "connections": {
+    "Diário 04:20": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Status A/I (canais)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Status A/I (atendentes)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Buscar setores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status A/I (canais)": {
+      "main": [
+        [
+          {
+            "node": "Buscar canais",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar canais": {
+      "main": [
+        [
+          {
+            "node": "Separar (canais)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar (canais)": {
+      "main": [
+        [
+          {
+            "node": "Upsert canais",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status A/I (atendentes)": {
+      "main": [
+        [
+          {
+            "node": "Buscar atendentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar atendentes": {
+      "main": [
+        [
+          {
+            "node": "Separar (atendentes)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar (atendentes)": {
+      "main": [
+        [
+          {
+            "node": "Upsert atendentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar setores": {
+      "main": [
+        [
+          {
+            "node": "Separar (setores)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar (setores)": {
+      "main": [
+        [
+          {
+            "node": "Upsert setores",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Buscar motivos (por setor)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar motivos (por setor)": {
+      "main": [
+        [
+          {
+            "node": "Separar (motivos)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar (motivos)": {
+      "main": [
+        [
+          {
+            "node": "Upsert motivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert motivos": {
+      "main": [
+        [
+          {
+            "node": "Log da sincronização",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": false
+  },
+  "pinData": {}
+}

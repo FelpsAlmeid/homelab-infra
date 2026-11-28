@@ -1,0 +1,283 @@
+{
+  "name": "opa_backfill_atendimentos",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Executar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "baseurl",
+              "name": "baseUrl",
+              "value": "https://<servidor-opa>/api/v1",
+              "type": "string"
+            },
+            {
+              "id": "diasinicio",
+              "name": "diasInicio",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "diasfim",
+              "name": "diasFim",
+              "value": 30,
+              "type": "number"
+            },
+            {
+              "id": "paginaspordia",
+              "name": "paginasPorDia",
+              "value": 3,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Uma janela por dia (dia D até D+1, para não depender de a data final ser inclusiva).\n// Roda em blocos: diasInicio=0/diasFim=30, depois 30/60, depois 60/90...\nconst cfg = $('Config').first().json;\nconst hoje = $now.setZone('America/Fortaleza').startOf('day');\nconst out = [];\nfor (let d = cfg.diasInicio; d < cfg.diasFim; d++) {\n  const dia = hoje.minus({ days: d });\n  const janela = dia.toFormat('yyyy-MM-dd');\n  const filter = { dataInicialAbertura: janela, dataFinalAbertura: dia.plus({ days: 1 }).toFormat('yyyy-MM-dd') };\n  for (let i = 0; i < cfg.paginasPorDia; i++) out.push({ json: { janela, filter, skip: i * 1000 } });\n}\nreturn out;\n"
+      },
+      "id": "gerar",
+      "name": "Gerar janelas diárias",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').first().json.baseUrl }}/atendimento/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: $json.filter, options: { skip: $json.skip, limit: 1000 } }) }}",
+        "options": {}
+      },
+      "id": "fetch",
+      "name": "Buscar atendimentos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "TROCAR_PELA_CREDENCIAL_OPA",
+          "name": "Opa Suite - Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Normaliza o atendimento cru da Opa Suite para o schema do banco noc.\n// LGPD: id_cliente, id_user, canal_cliente, tags, observações e mensagens NUNCA são lidos.\n\nconst idOf = (v) => (v && typeof v === 'object') ? (v._id || v.id || v.idMotivo || null) : (v || null);\n\n// Horário comercial PROVISÓRIO (seg-sex 8h-18h, sáb 8h-12h), no fuso de Fortaleza (UTC-3, sem horário de verão).\n// Evolução: ler os períodos reais pelo endpoint /periodo da Opa Suite.\nfunction foraDoHorario(iso) {\n  const t = new Date(iso);\n  if (isNaN(t)) return null;\n  const local = new Date(t.getTime() - 3 * 3600 * 1000);\n  const dia = local.getUTCDay();   // 0 = domingo\n  const hora = local.getUTCHours();\n  if (dia === 0) return true;\n  if (dia === 6) return !(hora >= 8 && hora < 12);\n  return !(hora >= 8 && hora < 18);\n}\n\n// Nota da pesquisa de satisfação do CLIENTE (likert, 1 a 5). A nota da IA não entra aqui de propósito.\n// Formato real (conferido em 27/11): evaluations = [{ metric: 'likert', likert: { rating, topic }, date }, ...]\n// Se houver mais de uma, prefere topic 'all' e, entre elas, a mais recente.\nfunction extrairRating(item) {\n  let cands = [];\n  if (Array.isArray(item.evaluations)) {\n    cands = item.evaluations\n      .filter((e) => e && (e.metric === 'likert' || e.likert) && e.likert && e.likert.rating != null)\n      .map((e) => ({ r: Number(e.likert.rating), all: e.likert.topic === 'all', t: Date.parse(e.date) || 0 }));\n  } else if (item.evaluations && item.evaluations.likert && item.evaluations.likert.rating != null) {\n    cands = [{ r: Number(item.evaluations.likert.rating), all: true, t: 0 }];\n  }\n  cands = cands.filter((c) => !isNaN(c.r));\n  if (!cands.length) return null;\n  cands.sort((a, b) => (b.all - a.all) || (b.t - a.t));\n  return cands[0].r;\n}\n\n// Motivo: formato novo (motivos[].idMotivo) ou antigo (id_motivo_atendimento). Usa o primeiro.\nfunction extrairMotivo(item) {\n  if (Array.isArray(item.motivos) && item.motivos.length) {\n    const m = item.motivos[0];\n    return idOf(m && typeof m === 'object' && 'idMotivo' in m ? m.idMotivo : m);\n  }\n  return idOf(item.id_motivo_atendimento);\n}\n\n// Deduplica por _id (o mesmo atendimento pode vir na janela de abertura e na de encerramento).\nconst porId = new Map();\n// Lê direto as respostas da API (uma por página) — sem nó intermediário guardando os registros brutos.\nfor (const resp of $input.all()) {\n  for (const item of ((resp.json && resp.json.data) || [])) {\n  if (!item || !item._id) continue;\n  porId.set(item._id, {\n    id: item._id,\n    protocolo: item.protocolo || null,\n    status: item.status || null,\n    canal_tipo: item.canal || null,\n    canal_id: idOf(item.canal_id),\n    setor_id: idOf(item.setor),\n    atendente_id: idOf(item.id_atendente),\n    motivo_id: extrairMotivo(item),\n    data_abertura: item.date || null,\n    data_encerramento: item.fim || null,\n    fora_horario: item.date ? foraDoHorario(item.date) : null,\n    rating: extrairRating(item),\n  });\n  }\n}\nreturn [...porId.values()].map((json) => ({ json }));\n"
+      },
+      "id": "normalize",
+      "name": "Separar e normalizar (LGPD)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO opa_atendimentos (\n  id, protocolo, status, canal_tipo, canal_id, canal,\n  setor_id, setor, atendente_id, atendente, motivo_id, motivo,\n  data_abertura, data_encerramento, fora_horario, rating, atualizado_em\n)\nVALUES (\n  $1, $2, $3, $4, $5,\n  (SELECT CASE x WHEN 'Page' THEN 'Web Chat' ELSE x END\n     FROM (SELECT COALESCE((SELECT canal FROM opa_canais WHERE id = $5), initcap($4)) AS x) s),\n  $6, COALESCE((SELECT nome FROM opa_setores WHERE id = $6), $6),\n  $7, (SELECT nome FROM opa_usuarios WHERE id = $7),\n  $8, (SELECT motivo FROM opa_motivos WHERE id = $8),\n  $9, $10, $11, $12, now()\n)\nON CONFLICT (id) DO UPDATE SET\n  protocolo = EXCLUDED.protocolo, status = EXCLUDED.status,\n  canal_tipo = EXCLUDED.canal_tipo, canal_id = EXCLUDED.canal_id, canal = EXCLUDED.canal,\n  setor_id = EXCLUDED.setor_id, setor = EXCLUDED.setor,\n  atendente_id = EXCLUDED.atendente_id, atendente = EXCLUDED.atendente,\n  motivo_id = EXCLUDED.motivo_id, motivo = EXCLUDED.motivo,\n  data_abertura = EXCLUDED.data_abertura, data_encerramento = EXCLUDED.data_encerramento,\n  fora_horario = EXCLUDED.fora_horario, rating = EXCLUDED.rating, atualizado_em = now();",
+        "options": {
+          "queryReplacement": "={{ [$json.id, $json.protocolo, $json.status, $json.canal_tipo, $json.canal_id, $json.setor_id, $json.atendente_id, $json.motivo_id, $json.data_abertura, $json.data_encerramento, $json.fora_horario, $json.rating] }}"
+        }
+      },
+      "id": "upsert",
+      "name": "Upsert atendimentos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        960,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "TROCAR_PELA_CREDENCIAL_NOC",
+          "name": "Postgres - noc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const paginas = $('Gerar janelas diárias').all().map((i) => i.json);\nconst respostas = $('Buscar atendimentos').all();\nconst ultima = {};\npaginas.forEach((p, i) => { ultima[p.janela] = i; });\nconst cheias = Object.entries(ultima)\n  .filter(([, i]) => (((respostas[i] || {}).json || {}).data || []).length >= 1000)\n  .map(([k]) => k);\nreturn [{ json: {\n  fluxo: 'opa_backfill_atendimentos',\n  registros: $('Separar e normalizar (LGPD)').all().length,\n  status: cheias.length ? 'verificar_paginas' : 'ok',\n  detalhe: cheias.length ? 'Última página cheia em: ' + cheias.join(', ') + ' — aumente as páginas no Config' : null,\n} }];\n"
+      },
+      "id": "resumo",
+      "name": "Resumo da execução",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO opa_sync_log (fluxo, executado_em, registros, status, erro) VALUES ($1, now(), $2, $3, $4);",
+        "options": {
+          "queryReplacement": "={{ [$json.fluxo, $json.registros, $json.status, $json.detalhe] }}"
+        }
+      },
+      "id": "log",
+      "name": "Log da sincronização",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1440,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "TROCAR_PELA_CREDENCIAL_NOC",
+          "name": "Postgres - noc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## opa_backfill_atendimentos (manual)\n\nCarga histórica para o dashboard ter passado (o padrão do Grafana é **últimos 30 dias**).\n\nRodar em blocos pelo **Config**:\n1. `diasInicio=0`, `diasFim=30` → executar\n2. (opcional) `30` / `60` → executar\n3. (opcional) `60` / `90` → executar\n\nPode repetir sem medo: o upsert é idempotente.\n\nSe o log gravar `verificar_paginas`, aumente `paginasPorDia` e rode o bloco de novo.\n\nMesma transformação/LGPD do `opa_sync_atendimentos`.",
+        "height": 420,
+        "width": 520,
+        "color": 5
+      },
+      "id": "nota",
+      "name": "Nota",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -160
+      ]
+    }
+  ],
+  "connections": {
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Gerar janelas diárias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar janelas diárias": {
+      "main": [
+        [
+          {
+            "node": "Buscar atendimentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar atendimentos": {
+      "main": [
+        [
+          {
+            "node": "Separar e normalizar (LGPD)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar e normalizar (LGPD)": {
+      "main": [
+        [
+          {
+            "node": "Upsert atendimentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert atendimentos": {
+      "main": [
+        [
+          {
+            "node": "Resumo da execução",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumo da execução": {
+      "main": [
+        [
+          {
+            "node": "Log da sincronização",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": false
+  },
+  "pinData": {}
+}

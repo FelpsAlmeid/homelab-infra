@@ -2,7 +2,7 @@
 
 Homelab com **IA local na GPU**, serviços de NOC (IPAM, chamados e monitoramento) e **publicação segura na internet** sem abrir portas na rede de casa.
 
-Começou num PC comum com Proxmox VE e uma RTX 3060; desde 15/11/2026 roda num host 24/7 no POP do provedor (i7-10700, 32 GB, RX 580), com uma instância gratuita da Oracle Cloud como porta de entrada pública. Também transmite as lives da TV do provedor (OBS) com interação do público por QR Code e, em teste, gerencia os celulares corporativos (MDM). Desde 20/11/2026 também hospeda o portal interno do colaborador (escalas e RH, com login pelo AD).
+Começou num PC comum com Proxmox VE e uma RTX 3060; desde 15/11/2026 roda num host 24/7 no POP do provedor (i7-10700, 32 GB, RX 580), com uma instância gratuita da Oracle Cloud como porta de entrada pública. Também transmite as lives da TV do provedor (OBS) com interação do público por QR Code e, em teste, gerencia os celulares corporativos (MDM). Desde 20/11/2026 também hospeda o portal interno do colaborador (escalas e RH, com login pelo AD) e, desde 27/11/2026, o painel executivo de atendimento ao cliente para a diretoria (Grafana sobre um Postgres central alimentado pelo n8n).
 
 > Este repositório guarda configurações de referência, scripts e a documentação das decisões. Nenhum segredo é versionado: senhas, chaves e tokens ficam fora daqui (veja [Segurança](docs/seguranca.md)).
 
@@ -24,6 +24,8 @@ flowchart LR
         N8 -->|leitura| Z["CT 104 · Zabbix"] & NB["CT 105 · NetBox"] & G["CT 106 · GLPI"]
         NB -->|sync| Z
         Z -->|chamados| G
+        N8 -->|"escrita"| PG[("CT 115 · Postgres noc")]
+        GF["CT 114 · Grafana<br/>NOC + painel da diretoria"] -->|"leitura"| PG & Z
       end
 
       subgraph LIVES["Lives TV Play"]
@@ -39,6 +41,7 @@ flowchart LR
     end
 
     O <-.->|"túnel WireGuard dedicado"| WG
+    OPA["Plataforma de atendimento<br/>(Opa Suite, API)"] -->|"HTTPS · token só leitura"| N8
     WG --> NOC
     CAM["Câmeras IP"] -->|RTSP| OBS
     PUB["Público (rede interna)"] -->|QR Code| PE
@@ -60,7 +63,7 @@ Detalhes em [docs/arquitetura.md](docs/arquitetura.md).
 | [`proxmox/host`](proxmox/host) | Rede com VLANs, IPv6 desativado, driver NVIDIA com Secure Boot, passthrough de GPU AMD, SSD de dados e [backup](proxmox/host/backup) |
 | [`proxmox/lxc`](proxmox/lxc) | Configurações de referência dos containers |
 | [`proxmox/firewall`](proxmox/firewall) | IPSets e regras do firewall do Proxmox |
-| [`servicos/`](servicos) | Ollama, Samba, OBS (VM das lives), [pedidos](servicos/pedidos) (QR Code + painel admin), [MDM](servicos/mdm) (celulares corporativos), [Frappe HR](servicos/frappe-rh) (escalas e RH), NetBox, GLPI, Zabbix, OpenClaw, n8n, Discord, a sincronização NetBox → Zabbix e a integração Zabbix → GLPI |
+| [`servicos/`](servicos) | Ollama, Samba, OBS (VM das lives), [pedidos](servicos/pedidos) (QR Code + painel admin), [MDM](servicos/mdm) (celulares corporativos), [Frappe HR](servicos/frappe-rh) (escalas e RH), NetBox, GLPI, Zabbix, OpenClaw, n8n ([atendimento Opa Suite](servicos/n8n/opa-suite/README.md)), [Grafana](servicos/grafana/README.md), [Postgres central](servicos/postgres-noc/README.md), Discord, a sincronização NetBox → Zabbix e a integração Zabbix → GLPI |
 | [`oracle/`](oracle) | Proxy público: Nginx Proxy Manager, WireGuard, firewall da instância |
 | [`mikrotik/`](mikrotik) | Ponta local do túnel e regras de firewall |
 | [`docs/`](docs) | Arquitetura, segurança, lições aprendidas e roadmap |
@@ -75,7 +78,7 @@ Detalhes em [docs/arquitetura.md](docs/arquitetura.md).
 
 ## Stack
 
-Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · OpenClaw · n8n · OBS Studio · Streamlink · Headwind MDM · Tomcat · PostgreSQL · Frappe HR / ERPNext · MariaDB · Open WebUI · NetBox · GLPI · Zabbix · Samba · WireGuard · Nginx Proxy Manager · Let's Encrypt · Oracle Cloud (ARM) · MikroTik RouterOS 7
+Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · OpenClaw · n8n · Grafana · OBS Studio · Streamlink · Headwind MDM · Tomcat · PostgreSQL · Frappe HR / ERPNext · MariaDB · Open WebUI · NetBox · GLPI · Zabbix · Samba · WireGuard · Nginx Proxy Manager · Let's Encrypt · Oracle Cloud (ARM) · MikroTik RouterOS 7
 
 ## Status
 
@@ -108,9 +111,11 @@ Proxmox VE 9 · Debian 13 · LXC · Docker · Ollama · OpenClaw · n8n · OBS S
 | Grupos do AD padronizados por setor/função (base do login dos sistemas) | ✅ |
 | Portal do colaborador ([Frappe HR, CT 113](servicos/frappe-rh/README.md)) — piloto de escalas com login pelo AD e aprovação do RH | 🔄 |
 | IA local de volta (host antigo formatado em 17/11; agente sem LLM) | ⏳ |
-| Grafana para o NOC | ⏳ |
+| Grafana para o NOC ([CT 114](servicos/grafana/README.md)) — Zabbix somente leitura | ✅ |
+| Atendimento: plataforma de atendimento → n8n → Postgres central ([CT 115](servicos/postgres-noc/README.md)) → [painel executivo](servicos/grafana/README.md#atendimento-ao-cliente--opa-suite) para a diretoria | ✅ |
+| Acesso da diretoria ao Grafana (contas Viewer + publicação no proxy) | ⏳ |
 
-Legenda: ✅ concluído · 🔄 em andamento · ⏳ pendente. Atualizado em 22/11/2026.
+Legenda: ✅ concluído · 🔄 em andamento · ⏳ pendente. Atualizado em 27/11/2026.
 
 Roadmap por sistema (Proxmox, Zabbix, NetBox, GLPI, integrações, proxy, IA, n8n e lives) em [docs/roadmap.md](docs/roadmap.md).
 
@@ -122,7 +127,8 @@ Roadmap por sistema (Proxmox, Zabbix, NetBox, GLPI, integrações, proxy, IA, n8
 4. Host do POP: persistir a regra `DOCKER-USER` do GLPI e recriar os jobs de backup (incluindo VM 109, CT 111, VM 112 e CT 113).
 5. Definir onde o LLM do agente volta a rodar.
 6. Zabbix em escala: switches/OLTs pais dos rádios no NetBox (lote 2), **dependências de triggers pelo `uplink`** e severidades, filtro de interfaces no LLD.
-7. Grafana; depois Consolidação (testes de segurança e de uso).
+7. Painel de atendimento: contas Viewer da diretoria, publicação do Grafana no proxy, carga dos 30 dias anteriores (comparação entre períodos) e CTs 114/115 nos jobs de backup.
+8. Consolidação (testes de segurança e de uso).
 
 ## Telas
 

@@ -1,0 +1,13 @@
+# /etc/pve/firewall/115.fw — Postgres central: entrada só dos clientes, nenhuma saída
+[OPTIONS]
+enable: 1
+policy_in: DROP
+policy_out: DROP
+
+[RULES]
+IN ACCEPT -source <ip-n8n> -p tcp -dport 5432 -log nolog # n8n (escrita, usuário noc)
+IN ACCEPT -source <ip-grafana> -p tcp -dport 5432 -log nolog # Grafana (leitura, grafana_ro)
+# Só durante instalação/atualização de pacotes:
+# OUT ACCEPT -p udp -dport 53 -log nolog # TEMP DNS
+# OUT ACCEPT -p tcp -dport 80 -log nolog # TEMP apt
+# OUT ACCEPT -p tcp -dport 443 -log nolog # TEMP apt

@@ -28,6 +28,8 @@
 | 111 | pedidos | LXC (Python) | SSD local | Pedidos por QR, retransmissão por link, painel admin HTTPS com 2FA ([guia](../servicos/pedidos/README.md)) |
 | 112 | mdm | **VM** Ubuntu 24.04 (Secure Boot) | SSD de dados | Headwind MDM dos celulares corporativos; Tomcat/Postgres/MQTT só em localhost, IN/OUT em DROP; em teste desde 19/11 ([guia](../servicos/mdm/README.md)) |
 | 113 | frappe-rh | LXC não privilegiado (Docker) | SSD de dados | Frappe HR (portal do colaborador: escalas e RH); MariaDB/Redis no compose, Nginx com certificado da CA do AD, login LDAPS pelo AD; piloto desde 20/11 ([guia](../servicos/frappe-rh/README.md)) |
+| 114 | grafana | LXC não privilegiado | SSD de dados | Grafana OSS 13 (apt): Zabbix e Postgres `noc` somente leitura; painéis do NOC/TVs e painel executivo de atendimento ([guia](../servicos/grafana/README.md)) |
+| 115 | postgres-noc | LXC não privilegiado (Postgres nativo) | SSD de dados | Banco `noc` central das integrações: n8n escreve, Grafana lê; entrada 5432 só desses dois, sem saída ([guia](../servicos/postgres-noc/README.md)) |
 
 ## Decisões
 
@@ -39,6 +41,7 @@
 - **Proxy na nuvem + túnel iniciado de dentro (CT `wg-gw`; antes pelo roteador):** nenhuma porta aberta na rede local; funciona mesmo atrás de CGNAT.
 - **Túnel dedicado para o proxy**, separado da VPN de administração: o proxy é exposto à internet e não pode ter acesso administrativo.
 - **Grupos do AD por setor ou função, nunca por sistema (20/11):** um único conjunto de grupos (`SETOR_*`, `FUNCAO_*`) lido por todos os sistemas com login pelo AD; renomear em vez de recriar preserva o SID (permissões de pasta e filtros de GPO continuam valendo).
+- **Postgres central num CT próprio (27/11):** as integrações gravam num banco `noc` fora do Compose do n8n (isolamento, backup independente, um só ponto de leitura para o Grafana); o Grafana lê com usuário só `SELECT`.
 - **Banco do monitoramento em disco dedicado:** escrita contínua do Zabbix chegou a travar o host quando dividia o SSD do sistema.
 
 ## Backup
@@ -56,5 +59,5 @@ flowchart LR
 
 - Dois locais além do disco do sistema: outro disco no mesmo PC e a nuvem.
 - Conta do Drive dedicada (grupo familiar do Google One) com `scope=drive.file`: o token não alcança a conta pessoal.
-- ⚠️ No host do POP os jobs ainda **não foram recriados** (pendência de 15/11); o desenho acima é o alvo, agora incluindo CT 100, VM 109, CT 111, VM 112 e CT 113 (+ dump diário do Postgres do MDM e backup criptografado do Frappe).
+- ⚠️ No host do POP os jobs ainda **não foram recriados** (pendência de 15/11); o desenho acima é o alvo, agora incluindo CT 100, VM 109, CT 111, VM 112, CT 113, CT 114 e CT 115 (+ dump diário do Postgres do MDM e backup criptografado do Frappe).
 - Detalhes e restauração em [`proxmox/host/backup`](../proxmox/host/backup/README.md).
